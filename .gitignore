@@ -1,0 +1,13 @@
+.ipynb_checkpoints
+__pycache__/
+
+*.csv
+# Exceptions:
+!/topics/daily_topics.csv
+!/topics/topic_description.csv
+!/uncertainty/*.csv
+
+*.sav
+*.pickle
+*.pkl
+*.pyc
