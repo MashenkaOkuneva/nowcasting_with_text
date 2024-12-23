@@ -6,6 +6,11 @@ __pycache__/
 !/topics/daily_topics.csv
 !/topics/topic_description.csv
 !/uncertainty/*.csv
+!/sentiment/*.csv
+
+*.xlsx
+# Exceptions:
+!/sentiment/*.xlsx
 
 *.sav
 *.pickle
