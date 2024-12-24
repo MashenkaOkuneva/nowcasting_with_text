@@ -4,7 +4,9 @@ __pycache__/
 *.csv
 # Exceptions:
 !/topics/daily_topics.csv
+!/topics/daily_topics_100.csv
 !/topics/topic_description.csv
+!/topics/topic_description_100.csv
 !/uncertainty/*.csv
 !/sentiment/*.csv
 
