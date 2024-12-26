@@ -5,6 +5,10 @@ __pycache__/
 # Exceptions:
 !/topics/daily_topics.csv
 !/topics/daily_topics_100.csv
+!/topics/daily_topics_dpa.csv
+!/topics/daily_topics_hb.csv
+!/topics/daily_topics_sz.csv
+!/topics/daily_topics_welt.csv
 !/topics/topic_description.csv
 !/topics/topic_description_100.csv
 !/uncertainty/*.csv
