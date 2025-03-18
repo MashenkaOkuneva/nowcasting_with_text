@@ -41,8 +41,9 @@ prepare_vintage <- function(vintage) {
   
   # Mnemonics
   series_names <- c("ConstrProd", "IP", "ConstrNO", "INO", 
-                    "ConstrTurn", "ITurn", "CPI", "CPIEN", 
-                    "PPI", "PPIEN", "HW", "ConstrHW")
+                    "ConstrTurn", "ITurn", "RetTurn", "CPI", "CPIEN",
+                    "PPI", "PPIEN", "EPI", "IPI", "HW", "ConstrHW", "Empl",
+                    "GWMan", "GWConstr")
   
   # Loop to load each .Rda file from the "data_monthly" directory using the short names
   for (name in series_names) {
