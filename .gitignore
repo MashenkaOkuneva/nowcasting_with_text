@@ -1,5 +1,6 @@
 .ipynb_checkpoints
 __pycache__/
+.Rhistory
 
 *.csv
 # Exceptions:
@@ -13,15 +14,15 @@ __pycache__/
 !/topics/topic_description_100.csv
 !/uncertainty/*.csv
 !/sentiment/*.csv
-!/hard_data/*.csv
-!/hard_data/vintages_monthly/*.csv
-!/hard_data/vintages_quarterly/*.csv
+!/data/*.csv
+!/data/vintages_monthly/*.csv
+!/data/vintages_quarterly/*.csv
 
 *.xlsx
 # Exceptions:
 !/sentiment/*.xlsx
-!/hard_data/data_monthly/variables_definitions.xlsx
-!/hard_data/data_quarterly/*.xlsx
+!/data/data_monthly/variables_definitions.xlsx
+!/data/data_quarterly/*.xlsx
 
 *.sav
 *.pickle
