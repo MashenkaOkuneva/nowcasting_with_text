@@ -5,6 +5,7 @@ library(bundesbank)
 library(lubridate)
 library(dplyr)
 library(tibble)
+library(readxl)
 library(parallel)
 
 # THE MAIN FUNCTION ----
@@ -44,6 +45,9 @@ prepare_vintage <- function(vintage) {
                     "ConstrTurn", "ITurn", "RetTurn", "CPI", "CPIEN",
                     "PPI", "PPIEN", "EPI", "IPI", "HW", "ConstrHW", "Empl",
                     "GWMan", "GWConstr")
+  
+  # Transformations
+  transform <- c(3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)
   
   # Loop to load each .Rda file from the "data_monthly" directory using the short names
   for (name in series_names) {
@@ -94,6 +98,143 @@ prepare_vintage <- function(vintage) {
     final_df <- final_df %>% left_join(series_list[[name]], by = "date")
   }
   
+  # Remove unnecessary objects
+  rm(list = c(series_names, "series", "series_list") , envir = .GlobalEnv)
+  
+  # LOAD MONTHLY FINANCIAL VARIABLES ----
+  # The CDAX performance index (code: CDAXGEN) was downloaded from LSEG Datastream
+  CDAX <- read_excel(path = file.path("data_monthly", "CDAX.xlsx"),
+                     col_types = c("date", "numeric"))
+  
+  # Ensure the date column is a Date object
+  CDAX$date <- as.Date(CDAX$date, format = "%Y-%m-%d")
+  
+  CDAX <- CDAX %>%
+    # 1. Construct 'year', 'month', and 'day' columns
+    mutate(
+      year = year(date),
+      month = month(date),
+      day = day(date)
+    ) %>%
+    # 2. Filter data to be <= vintage
+    filter(date <= vintage_date) %>%
+    # 3. Arrange columns
+    select(date, year, month, day, CDAX)
+  
+  # Extend series with NA to 7-day week 
+  dates_tmp <- data.frame(date = seq(min(CDAX$date), 
+                                     vintage_date, 
+                                     by = "days")
+  )
+  
+  dates_tmp %>% 
+    mutate(year = year(date),
+           month = month(date),
+           day = day(date)) %>%
+    merge(CDAX, by = c("date", "year", "month", "day"), all.x = T) -> CDAX
+  
+  # Get rid of dates_tmp
+  rm(dates_tmp)
+  
+  # Aggregate daily data to monthly frequency
+  CDAX <- CDAX %>%
+    group_by(year, month) %>%
+    summarize(
+      # Keep the last value for the index at the end of each month
+      CDAX = ifelse(all(is.na(CDAX)), NA, last(na.omit(CDAX)))
+    ) %>%
+    ungroup() %>%  # Remove grouping to ensure continuity across the whole dataset
+    arrange(year, month) %>%  # Arrange data to ensure proper order
+    mutate(
+      # Create a date column corresponding to the first day of the month
+      date = as.Date(paste(year, month, "01"), format = "%Y %m %d"),
+    ) %>%
+    select(date, CDAX)
+  
+  # Merge CDAX dataframe with final_df by left joining on the "date" column
+  final_df <- final_df %>% left_join(CDAX, by = "date")
+  
+  # Remove CDAX dataframe
+  rm(CDAX, envir = .GlobalEnv)
+  
+  # Mnemonics
+  series_names_financial <- c("Bond1", "Bond5", "Bond10", "EERN", 
+                              "EERB", "TotalDebt", "BankDebt", "CorpDebt", "PublicDebt")
+  
+  # Transformations
+  transform_financial <- c(3, 2, 2, 2, 3, 3, 2, 2, 2, 2)
+  
+  # Loop to load each .Rda file from the "data_monthly" directory using the short names
+  for (name in series_names_financial) {
+    load(file = file.path("data_monthly", paste0(name, ".Rda")))
+  }
+  
+  series_list <- list()
+  
+  for (name in series_names_financial) {
+    
+    # Retrieve the dataframe with one series
+    series <- get(name)
+    
+    # Adjust the date to be the first day of the month
+    series <- series %>% 
+      mutate(date = as.Date(paste0(date, "-01"), format = "%Y-%m-%d"))%>% 
+      filter(date <= cutoff_date, date >= as.Date("1991-01-01"))
+    
+    # Store the dataframe in the list
+    series_list[[name]] <- series
+  }
+  
+  # Merge each series into final_df by left joining on the "date" column
+  for (name in series_names_financial) {
+    final_df <- final_df %>% left_join(series_list[[name]], by = "date")
+  }
+  
+  # Remove unnecessary objects
+  rm(list = c(series_names_financial, "series", "series_list") , envir = .GlobalEnv)
+  
+  # LOAD SURVEYS ----
+  # The survey data from ifo, GfK, and European Commission
+  surveys <- read_excel(path = file.path("data_monthly", "Surveys.xlsx"),
+                        col_types = c("text", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "date"),
+                        na = c("NA", ""))
+  
+  # Convert the date columns to Date objects
+  surveys$date <- as.Date(paste0("01/", surveys$date), format = "%d/%m/%Y")
+  surveys$pub_date_ESI <- as.Date(surveys$pub_date_ESI, format = "%d-%m-%Y")
+  
+  # For each monthly ESI value, if its publication date is later than vintage_date,
+  # then set its value to NA
+  surveys <- surveys %>%
+    mutate(ESI = ifelse(is.na(pub_date_ESI) | pub_date_ESI <= vintage_date, ESI, NA))
+  
+  # Use short variable names
+  surveys <- surveys %>%
+    rename(
+      ifoIndTradeClimate = `ifo: industry and trade, climate`,
+      ifoIndTradeCurrent = `ifo: industry and trade, current situation`,
+      ifoIndTradeExp     = `ifo: industry and trade, expectations`,
+      GfKBCE             = `GfK: business cycle expectations`,
+      GfKIE              = `GfK: income expectations`,
+      GfKWtB             = `GfK: willingness-to-buy`,
+      GfKCCI             = `GfK: consumer climate indicator`
+    )
+  
+  # Remove the column pub_date_ESI
+  surveys <- surveys %>%
+    select(-pub_date_ESI)
+  
+  # Left join final_df with surveys by "date"
+  final_df <- final_df %>%
+    left_join(surveys, by = "date")
+  
+  # Remove unnecessary objects
+  rm(surveys , envir = .GlobalEnv)
+  
+  # Transformations
+  transform_surveys <- c(2, 2, 2, 2, 2, 2, 2, 2)
+  
   # Format the date column as m/d/yyyy
   final_df$date <- as.Date(final_df$date, format = "%m/%d/%Y")
   final_df$date <- paste0(
@@ -104,11 +245,12 @@ prepare_vintage <- function(vintage) {
   
   # Create the transform row
   transform_row <- final_df[1, ]
-  transform_row[] <- 1
+  transform_row[, -1] <- c(as.numeric(transform), as.numeric(transform_financial), as.numeric(transform_surveys))
   transform_row$date <- "Transform:"
   
   # Insert the transform row at the top of final_df
   final_df <- rbind(transform_row, final_df)
+  final_df[, -1] <- lapply(final_df[, -1], as.numeric)
   
   # Convert vintage to a Date object
   vintage_date <- as.Date(vintage)
@@ -123,7 +265,7 @@ prepare_vintage <- function(vintage) {
 
 # Define start and end dates (as strings)
 start_date <- "2007-12-31"
-end_date   <- "2008-03-31"
+end_date   <- "2018-12-31"
 
 # Convert them to Date objects
 start_date <- as.Date(start_date)
@@ -163,6 +305,7 @@ clusterEvalQ(cl, {
   library(lubridate)
   library(dplyr)
   library(tibble)
+  library(readxl)
 })
 
 clusterEvalQ(cl, setwd(getwd()))

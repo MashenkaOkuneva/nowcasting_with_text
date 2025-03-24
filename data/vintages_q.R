@@ -40,7 +40,10 @@ prepare_vintage <- function(vintage) {
   # LOAD QUARTERLY ECONOMIC VARIABLES ----
   
   # Mnemonics
-  series_names <- c("GDP")
+  series_names <- c("GDP", "Consumption", "Investment")
+  
+  # Transformations
+  transform <- c(3, 3, 3)
   
   # Loop to load each .Rda file from the "data_quarterly" directory using the short names
   for (name in series_names) {
@@ -95,6 +98,9 @@ prepare_vintage <- function(vintage) {
     final_df <- final_df %>% left_join(series_list[[name]], by = "date")
   }
   
+  # Remove unnecessary objects
+  rm(list = c(series_names, "series", "series_list", "economic_data") , envir = .GlobalEnv)
+  
   # Format the date column as m/d/yyyy
   final_df$date <- as.Date(final_df$date, format = "%m/%d/%Y")
   final_df$date <- paste0(
@@ -105,11 +111,12 @@ prepare_vintage <- function(vintage) {
   
   # Create the transform row
   transform_row <- final_df[1, ]
-  transform_row[] <- 1
+  transform_row[, -1] <- c(as.numeric(transform))
   transform_row$date <- "Transform:"
   
   # Insert the transform row at the top of final_df
   final_df <- rbind(transform_row, final_df)
+  final_df[, -1] <- lapply(final_df[, -1], as.numeric)
   
   # Convert vintage to a Date object
   vintage_date <- as.Date(vintage)
@@ -124,7 +131,7 @@ prepare_vintage <- function(vintage) {
 
 # Define start and end dates (as strings)
 start_date <- "2007-12-31"
-end_date   <- "2008-03-31"
+end_date   <- "2018-12-31"
 
 # Convert them to Date objects
 start_date <- as.Date(start_date)

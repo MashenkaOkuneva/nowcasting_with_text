@@ -36,31 +36,36 @@ if (vintage_date < last_day_q) {
 }
 
 # LOAD QUARTERLY ECONOMIC VARIABLES ----
-series_codes <- c("BBKRT.Q.DE.Y.A.AG1.CA010.A.I" # Gross Domestic Product (GDP)
+series_codes <- c("BBKRT.Q.DE.Y.A.AG1.CA010.A.I", # Gross Domestic Product (GDP)
+                  "BBKRT.Q.DE.Y.A.CA1.BA100.A.I", # Private Consumption Expenditure
+                  "BBKRT.Q.DE.Y.A.CD1.CA010.A.I"  # Gross Capital Formation (overall economy)
 )
 
 # Mnemonics
-series_names <- c("GDP")
+series_names <- c("GDP", "Consumption", "Investment")
+
+# Transformations
+transform <- c(3, 3, 3)
 
 # Ensure the "data_quarterly" directory exists; if not, create it
-#if(!dir.exists("data_quarterly")){
-#  dir.create("data_quarterly")
-#}
+if(!dir.exists("data_quarterly")){
+  dir.create("data_quarterly")
+}
 
 # Loop through each series code and download data
-#for (i in seq_along(series_codes)) {
-#  code <- series_codes[i]
-#  short_name <- series_names[i]
-#  
-#  # Get the series
-#  economic_data <- getSeries(code)
-#  
-#  # Assign this data to a new variable with the short name in the global environment
-#  assign(short_name, economic_data, envir = .GlobalEnv)
-#  
-#  # Save to an .Rda file in the "data_quarterly" folder using the short name
-#  save(list = short_name, file = file.path("data_quarterly", paste0(short_name, ".Rda")))
-#}
+for (i in seq_along(series_codes)) {
+  code <- series_codes[i]
+  short_name <- series_names[i]
+  
+  # Get the series
+  economic_data <- getSeries(code)
+  
+  # Assign this data to a new variable with the short name in the global environment
+  assign(short_name, economic_data, envir = .GlobalEnv)
+  
+  # Save to an .Rda file in the "data_quarterly" folder using the short name
+  save(list = short_name, file = file.path("data_quarterly", paste0(short_name, ".Rda")))
+}
 
 # Loop to load each .Rda file from the "data_quarterly" directory using the short names
 for (name in series_names) {
@@ -115,6 +120,9 @@ for (name in series_names) {
   final_df <- final_df %>% left_join(series_list[[name]], by = "date")
 }
 
+# Remove unnecessary objects
+rm(list = c(series_names, "series", "series_list", "economic_data") , envir = .GlobalEnv)
+
 # Format the date column as m/d/yyyy
 final_df$date <- as.Date(final_df$date, format = "%m/%d/%Y")
 final_df$date <- paste0(
@@ -125,11 +133,12 @@ final_df$date <- paste0(
 
 # Create the transform row
 transform_row <- final_df[1, ]
-transform_row[] <- 1
+transform_row[, -1] <- c(as.numeric(transform))
 transform_row$date <- "Transform:"
 
 # Insert the transform row at the top of final_df
 final_df <- rbind(transform_row, final_df)
+final_df[, -1] <- lapply(final_df[, -1], as.numeric)
 
 # Convert vintage to a Date object
 vintage_date <- as.Date(vintage)

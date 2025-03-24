@@ -11,7 +11,7 @@ library(readxl)
 #_____________________________________________________#
 #_specify vintage
 #_____________________________________________________#
-vintage <- c("2008-01-31")
+vintage <- c("2008-01-15")
 
 # Convert vintage to Date
 vintage_date <- as.Date(vintage)  
@@ -275,6 +275,48 @@ for (name in series_names_financial) {
 # Remove unnecessary objects
 rm(list = c(series_names_financial, "series", "series_list") , envir = .GlobalEnv)
 
+# LOAD SURVEYS ----
+# The survey data from ifo, GfK, and European Commission
+surveys <- read_excel(path = file.path("data_monthly", "Surveys.xlsx"),
+                      col_types = c("text", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric",
+                                    "numeric", "numeric", "date"),
+                      na = c("NA", ""))
+
+# Convert the date columns to Date objects
+surveys$date <- as.Date(paste0("01/", surveys$date), format = "%d/%m/%Y")
+surveys$pub_date_ESI <- as.Date(surveys$pub_date_ESI, format = "%d-%m-%Y")
+
+# For each monthly ESI value, if its publication date is later than vintage_date,
+# then set its value to NA
+surveys <- surveys %>%
+  mutate(ESI = ifelse(is.na(pub_date_ESI) | pub_date_ESI <= vintage_date, ESI, NA))
+
+# Use short variable names
+surveys <- surveys %>%
+  rename(
+    ifoIndTradeClimate = `ifo: industry and trade, climate`,
+    ifoIndTradeCurrent = `ifo: industry and trade, current situation`,
+    ifoIndTradeExp     = `ifo: industry and trade, expectations`,
+    GfKBCE             = `GfK: business cycle expectations`,
+    GfKIE              = `GfK: income expectations`,
+    GfKWtB             = `GfK: willingness-to-buy`,
+    GfKCCI             = `GfK: consumer climate indicator`
+  )
+
+# Remove the column pub_date_ESI
+surveys <- surveys %>%
+  select(-pub_date_ESI)
+
+# Left join final_df with surveys by "date"
+final_df <- final_df %>%
+  left_join(surveys, by = "date")
+
+# Remove unnecessary objects
+rm(surveys , envir = .GlobalEnv)
+
+# Transformations
+transform_surveys <- c(2, 2, 2, 2, 2, 2, 2, 2)
+
 # Format the date column as m/d/yyyy
 final_df$date <- as.Date(final_df$date, format = "%m/%d/%Y")
 final_df$date <- paste0(
@@ -285,7 +327,7 @@ final_df$date <- paste0(
 
 # Create the transform row
 transform_row <- final_df[1, ]
-transform_row[, -1] <- c(as.numeric(transform), as.numeric(transform_financial))
+transform_row[, -1] <- c(as.numeric(transform), as.numeric(transform_financial), as.numeric(transform_surveys))
 transform_row$date <- "Transform:"
 
 # Insert the transform row at the top of final_df
