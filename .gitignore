@@ -17,6 +17,8 @@ __pycache__/
 !/data/*.csv
 !/data/vintages_monthly/*.csv
 !/data/vintages_quarterly/*.csv
+!/dfm/forecasts/*.csv
+!/dfm/*.csv
 
 *.xlsx
 # Exceptions:
