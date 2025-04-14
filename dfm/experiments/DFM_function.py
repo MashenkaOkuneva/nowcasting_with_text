@@ -108,6 +108,29 @@ def vintage_dates(target_month):
     
     return vintages
 
+def load_text_data(vintage, q_var, text_type="topics", estimation_period="2007", num_topics="200", source="all"):
+    
+    # 1. Download data
+    filename = f'../../data/vintages_monthly_{q_var}_{text_type}_{estimation_period}_{num_topics}_{source}/{vintage}.csv'
+    orig_text = pd.read_csv(filename).dropna(how='all')
+    
+    # 2. Extract transformation information
+    transform_text = orig_text.iloc[0, 1:]
+    orig_text = orig_text.iloc[1:]
+    
+    # 3. Extract the date as an index
+    orig_text.index = pd.PeriodIndex(orig_text.date.tolist(), freq='M')
+    orig_text.drop('date', axis=1, inplace=True)
+    
+    # 4. Apply the transformations
+    dta_text = orig_text.apply(transform, axis=0, transforms=transform_text)
+    
+     # - Output datasets 
+    return types.SimpleNamespace(
+        orig_text=orig_text, 
+        dta_text=dta_text, 
+        transform_text=transform_text)
+
 def factor_specification(groups, additional_factors=None):
     """
     Construct a dictionary mapping each variable
@@ -117,7 +140,7 @@ def factor_specification(groups, additional_factors=None):
       groups : pandas.DataFrame
           DataFrame that must contain at least two columns: 
           "Description" (the variable name) and "Group" (its group, e.g., 'Activity', 'Prices', 'Labor market',
-          'Financial', or 'Surveys').
+          'Financial', 'Surveys', or 'Text').
       
       additional_factors : None, str, or list of str
           - If None or an empty list, only "Global" is included.
@@ -145,7 +168,8 @@ def factor_specification(groups, additional_factors=None):
     return factors
 
 # --- Main function that produces forecasts for the quarter of interest based on 7 vintages ---
-def get_forecasts(forecast_month, q_var, additional_factors, factor_multiplicities, factor_orders, start):
+def get_forecasts(forecast_month, q_var, additional_factors, factor_multiplicities, factor_orders, start, text_type="topics",
+                 estimation_period="2007", num_topics="200", source = "all", with_text=False):
     """
     Given the input parameters, this function:
       - Generates the list of vintage dates for the forecast month.
@@ -162,15 +186,34 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
       factor_multiplicities: dictionary (e.g., {'Global': 1})
       factor_orders: dictionary (e.g., {'Global': 3})
       start: string indicating start date for estimation sample (e.g., "1991-02")
+      text_type: Type of text variables (e.g., "topics", "topics_BPW", "topics_uncertainty")
+      estimation_period: Period marker (e.g., "2007" or "2018") indicating estimation sample for topics
+      num_topics: Number of topics in the model (e.g., "200" or "100")
+      source: "all", "dpa", "hb", "sz", or "welt"
+      with_text: If True, forecast with text variables; if False, forecast without
     
     Returns:
       forecasts: dict mapping vintage date (string) to forecast value (for GDP/Consumption/Investment)
     """
+    
     # Generate vintage dates
     vintages = vintage_dates(forecast_month)
     
     # Load data for each vintage
     dta = {vint: load_data(vint, q_var = q_var) for vint in vintages}
+    
+    if with_text:
+        # Loop over each vintage and load the corresponding text data
+        for vint in vintages:
+            # Load text data for each vintage
+            text_obj = load_text_data(vint, q_var=q_var, 
+                                      text_type=text_type, 
+                                      estimation_period=estimation_period, 
+                                      num_topics=num_topics,
+                                      source=source)
+
+            # Merge the monthly economic data (dta_m) with the text data
+            dta[vint].combined = dta[vint].dta_m.merge(text_obj.dta_text, left_index=True, right_index=True, how='outer')
     
     # Load definitions for monthly and quarterly variables
     defn_m = pd.read_excel('../../data/data_monthly/variables_definitions.xlsx')
@@ -178,10 +221,20 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
     defn_q = pd.read_excel('../../data/data_quarterly/variables_definitions.xlsx')
     defn_q = defn_q[defn_q.Mnemonic == q_var]
     defn_q.index = defn_q['Mnemonic']
+    if with_text:
+        # Load the definitions Excel file for text variables
+        defn_text = pd.read_excel(f'../../data/data_text/variables_definitions_{q_var}_{text_type}_{estimation_period}_{num_topics}_{source}.xlsx')
+        defn_text.index = defn_text['Mnemonic']
+
+        # Combine the definitions for monthly economic and text variables
+        defn_combined = pd.concat([defn_m, defn_text])
          
     # Create mapping from mnemonic to description
     map_m = defn_m['Description'].to_dict()
     map_q = defn_q['Description'].to_dict()
+    if with_text:
+        # When forecasting with text variables, also replace the names in the combined dataset
+        map_combined = defn_combined['Description'].to_dict()
     
     # Replace column names for monthly and quarterly datasets in each vintage
     for vint in dta.keys():
@@ -189,19 +242,31 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
         dta[vint].dta_m.columns = dta[vint].dta_m.columns.map(map_m)
         dta[vint].orig_q.columns = dta[vint].orig_q.columns.map(map_q)
         dta[vint].dta_q.columns = dta[vint].dta_q.columns.map(map_q)
+        if with_text:
+            dta[vint].combined.columns = dta[vint].combined.columns.map(map_combined)
     
     # Re-order the monthly data columns based on the definitions file order
-    columns = [name for name in defn_m['Description'] if name in dta[vintages[0]].dta_m.columns]
-    for vint in dta.keys():
-        dta[vint].dta_m = dta[vint].dta_m.reindex(columns, axis=1)
+    if with_text:
+        columns = [name for name in defn_combined['Description']
+               if name in dta[vintages[0]].combined.columns]
+        for vint in dta.keys():
+            dta[vint].combined = dta[vint].combined.reindex(columns, axis=1)
+    else:
+        columns = [name for name in defn_m['Description']
+                   if name in dta[vintages[0]].dta_m.columns]
+        for vint in dta.keys():
+            dta[vint].dta_m = dta[vint].dta_m.reindex(columns, axis=1)
         
     # Get groups (variable -> group) mapping from monthly definitions
-    groups = defn_m[['Description', 'Group']].copy()
+    if with_text:
+        groups = defn_combined[['Description', 'Group']].copy()
+    else:
+        groups = defn_m[['Description', 'Group']].copy()
     
     # Add our quarterly variable into the "Activity" group
     q_var_description = defn_q.loc[q_var, 'Description']
     groups.loc[q_var] = {'Description': q_var_description, 'Group': 'Activity'}
-    
+
     # Define factor structure using 'factor_specification' function
     factors = factor_specification(groups, additional_factors=additional_factors)
     
@@ -209,7 +274,10 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
     forecasts = {}
     for vint in vintages:
         # Get monthly and quarterly datasets for this vintage
-        endog_m = dta[vint].dta_m.loc[start:, :]
+        if with_text:
+            endog_m = dta[vint].combined.loc[start:, :]
+        else:
+            endog_m = dta[vint].dta_m.loc[start:, :]
         endog_q = dta[vint].dta_q.loc[start:, [q_var_description]]
         
         # Construct the Dynamic Factor Model
