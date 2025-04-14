@@ -17,20 +17,24 @@ __pycache__/
 !/data/*.csv
 !/data/vintages_monthly/*.csv
 !/data/vintages_quarterly/*.csv
+!/data/vintages_monthly_GDP_topics_2007_200_all/*.csv
 !/dfm/forecasts/*.csv
 !/dfm/*.csv
 !/dfm/forecasts/DFM_hard_surveys_global_factors_Consumption/*.csv
 !/dfm/forecasts/DFM_hard_surveys_global_factors_GDP/*.csv
 !/dfm/forecasts/DFM_hard_surveys_global_factors_Investment/*.csv
+!/dfm/forecasts/DFM_topics_2007_200_all_global_factors_GDP/*.csv
 !/dfm/MSE/DFM_hard_surveys_global_factors_Consumption/*.csv
 !/dfm/MSE/DFM_hard_surveys_global_factors_GDP/*.csv
 !/dfm/MSE/DFM_hard_surveys_global_factors_Investment/*.csv
+!/dfm/MSE/DFM_topics_2007_200_all_global_factors_GDP/*.csv
 
 *.xlsx
 # Exceptions:
 !/sentiment/*.xlsx
 !/data/data_monthly/variables_definitions.xlsx
 !/data/data_quarterly/*.xlsx
+!/data/data_text/*.xlsx
 
 *.sav
 *.pickle
