@@ -17,7 +17,7 @@ from dateutil.relativedelta import relativedelta
 
 def transform(column, transforms):
     transformation = transforms[column.name]
-    # For quarterly data like GDP, we will compute
+    # For quarterly data like GDP, I will compute
     # annualized percent changes
     mult = 4 if column.index.freqstr[0] == 'Q' else 1
     

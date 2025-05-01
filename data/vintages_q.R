@@ -150,7 +150,7 @@ mid_month_seq <- as.Date(paste0(format(month_seq[-1], "%Y-%m"), "-15"))
 
 # Combine the dates:
 # First element is December's last day,
-# then for each subsequent month, we add the 15th and the last day.
+# then for each subsequent month, I add the 15th and the last day.
 vintages <- c(last_day_seq[1],
               as.vector(rbind(mid_month_seq, last_day_seq[-1])))
 

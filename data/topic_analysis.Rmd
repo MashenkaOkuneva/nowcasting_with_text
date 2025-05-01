@@ -7,7 +7,7 @@ output:
   html_notebook: default
 ---
 
-This notebook illustrates how we transform the raw daily time series of topics before estimating the monthly factor model. Additionally, it also calculates principal component estimates of transformed series and analyzes their correlation with quarterly variables.  
+This notebook illustrates how I transform the raw daily time series of topics before estimating the monthly factor model. Additionally, it also calculates principal component estimates of transformed series and analyzes their correlation with quarterly variables.  
 
 ```{r echo=T, message = FALSE, warning = FALSE}
 rm(list = ls())
@@ -68,7 +68,7 @@ head(df_topics)
 
 ## Pre-processing and transformations
 
-The following plot shows a representative topic series. It is extremely noisy and characterized by a slow-moving trend (but not necessarily linear!). In this section, we illustrate how to adjust the series in order to estimate the factor model at the monthly frequency. 
+The following plot shows a representative topic series. It is extremely noisy and characterized by a slow-moving trend (but not necessarily linear!). In this section, I illustrate how to adjust the series in order to estimate the factor model at the monthly frequency. 
 
 ```{r}
 ggplot(df_topics, aes(x = date, y = T2))+geom_line(alpha = 0.5)
@@ -86,7 +86,7 @@ colnames(ind_NA) <- names(df_topics)[grepl("T", names(df_topics))]
 
 ### Smoothing the raw topics
 
-To smooth the topics, we calculate a 30-day backward looking moving average. 
+To smooth the topics, I calculate a 30-day backward looking moving average. 
 
 `rollmean` function that calculates the recursive $K$-th order rolling mean, i.e. $\hat{y}_t = \frac{1}{K} \sum_{k=0}^K y_{t-k}$. Allows for `NA` in the series. 
 ```{r}
