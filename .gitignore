@@ -18,6 +18,8 @@ __pycache__/
 !/data/vintages_monthly/*.csv
 !/data/vintages_quarterly/*.csv
 !/data/vintages_monthly_GDP_topics_2007_200_all/*.csv
+!/data/vintages_monthly_Consumption_topics_2007_200_all/*.csv
+!/data/vintages_monthly_Investment_topics_2007_200_all/*.csv
 !/dfm/forecasts/*.csv
 !/dfm/*.csv
 !/dfm/forecasts/DFM_hard_surveys_global_factors_Consumption/*.csv

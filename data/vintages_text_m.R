@@ -8,7 +8,7 @@ library(parallel)
 
 # FUNCTIONS ----
 #_____________________________________________________#
-#_ roll_mean 
+#_ rollmean 
 #_ bw_filter
 #_____________________________________________________#
 
@@ -64,7 +64,7 @@ bw_filter <- function(y, bw)
 
 prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30, 
                             bw = 1200, topics_file = "../topics/daily_topics.csv",
-                            forecast_var = "GDP", topic_type = "topics",
+                            forecast_var = "Investment", topic_type = "topics",
                             estimation_period = "2007", num_topics = "200",
                             source = "all") {
   #_____________________________________________________#
@@ -195,8 +195,16 @@ prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30,
     pivot_wider(id_cols = date, names_from = topic, values_from = avg_vals)
   
   # 10 most correlated and meaningful topics (GDP, <2008, non-adjusted)
-  list_topics_select <- c("T50", "T150", "T29", "T21", "T38", "T108", "T59",
-                          "T120", "T91", "T134")
+  #list_topics_select <- c("T50", "T150", "T29", "T21", "T38", "T108", "T59",
+  #                        "T120", "T91", "T134")
+  
+  # 10 most correlated and meaningful topics (Consumption, <2008, non-adjusted)
+  #list_topics_select <- c("T45", "T62", "T118", "T78", "T136", "T74", "T94",
+  #                        "T100", "T140", "T5")
+  
+  # 10 most correlated and meaningful topics (Investment, <2008, non-adjusted)
+  list_topics_select <- c("T150", "T50", "T29", "T108", "T91", "T110", "T59",
+                          "T38", "T120", "T23")
   
   df_topics_trafo_M <- df_topics_trafo_M %>%
     select(date, all_of(list_topics_select))
