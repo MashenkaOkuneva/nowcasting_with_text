@@ -6,6 +6,9 @@ library(dplyr)
 library(tidyr)
 library(readxl)
 library(purrr)
+library(knitr)
+library(kableExtra)
+library(stringr)
 
 # FUNCTIONS ----
 #_____________________________________________________#
@@ -282,4 +285,200 @@ for(sv in survey_vars) {
 
 # Combine correlations of economic series and surveys
 final_corr <- reduce(survey_corr_list, full_join, .init = combined_corr, by = "topic")
+
+# CORRELATION TABLES FOR THE TEXT ----
+make_corr_table <- function(
+    econ_var,
+    n_top,
+    surveys_to_include,
+    topics_to_cross,
+    output_file = paste0("correlation_table_", econ_var, ".tex")
+) {
+  # 1) Define topic labels
+  topic_labels <- c(
+    "T50"  = "Crisis",
+    "T150" = "Corporate Growth",
+    "T29"  = "Banking",
+    "T21"  = "Policy Measures",
+    "T38"  = "Problem Solving",
+    "T108" = "US Politics",
+    "T59"  = "Commodity Markets",
+    "T121" = "Literature and Arts",
+    "T120" = "Economic Growth",
+    "T56"  = "Performance and Continental AG",
+    "T31"  = "Governmental Reorganization",
+    "T78"  = "CSU and Leadership Dynamics",
+    "T91"  = "\\makecell[tc]{Media Coverage of \\\\ Plans and Rumors}",
+    "T172" = "\\makecell[tc]{German Reunification and \\\\ Economic Transition}",
+    "T134" = "\\makecell[tc]{Steel Industry Restructuring \\\\ and Downsizing}",
+    "T128" = "Holocaust Remembrance",
+    "T45"  = "Diplomatic Visits",
+    "T62"  = "Corporate Restructuring",
+    "T193" = "Bosnian War",
+    "T118" = "Transport Policy",
+    "T138" = "Right-Wing Extremism",
+    "T136" = "Expectations and Uncertainty",
+    "T79"  = "Afghanistan Conflict",
+    "T8"   = "Organizations and Awards",
+    "T115" = "Flight Schedules and Incidents",
+    "T74"  = "Opinion Commentary",
+    "T94"  = "Middle East Diplomacy",
+    "T100" = "Protests and Demonstrations",
+    "T119" = "Kosovo Conflict",
+    "T140" = "\\makecell[tc]{UK Politics \\\\ and Northern Ireland}",
+    "T184" = "Church",
+    "T132" = "Korean Nuclear Tensions",
+    "T5"   = "Pricing and Cost Trends",
+    "T99"  = "Israeli–Palestinian Conflict",
+    "T104" = "\\makecell[tc]{Comparison, Contrast,\\\\ and Analysis}",
+    "T110" = "Technological Innovation",
+    "T189" = "Role and Influence",
+    "T19"  = "Family and Bereavement",
+    "T23"  = "Insolvency and Financial Rescue"
+  )
+  
+  # 2) build the dataframe of top correlations
+  df <- final_corr %>%
+    select(topic, all_of(econ_var), all_of(surveys_to_include)) %>%
+    arrange(desc(abs(.data[[econ_var]]))) %>%
+    slice(1:n_top) %>%
+    mutate(RawLabel = topic_labels[topic]) %>%
+    rowwise() %>%
+    mutate(
+      Label = if (topic %in% topics_to_cross) {
+        # crossed-out topics
+        if (str_detect(RawLabel, "\\\\makecell")) {
+          # extract the inside of \makecell[tc]{…}
+          body <- str_match(RawLabel, "\\\\makecell\\[tc\\]\\{(.*)\\}")[,2]
+          parts <- str_split(body, "\\\\\\\\")[[1]]
+          # wrap each line in \sout{…}
+          crossed <- paste0("\\sout{", parts, "}", collapse=" \\\\ ")
+          # reassemble as a single \makecell
+          paste0("\\makecell[tl]{", crossed, "}")
+        } else {
+          paste0("\\sout{", RawLabel, "}")
+        }
+      } else if (str_detect(RawLabel, "\\\\makecell\\[tc\\]")) {
+        # any non-crossed makecell[tc] -> makecell[tl]
+        str_replace(RawLabel, "\\\\makecell\\[tc\\]\\{", "\\\\makecell[tl]{")
+      } else {
+        RawLabel
+      }
+    ) %>%
+    ungroup() %>%
+    mutate(across(all_of(c(econ_var, surveys_to_include)), ~ round(.,3))) %>%
+    select(
+      ID = topic,
+      Label = Label,
+      all_of(econ_var),
+      all_of(surveys_to_include)
+    )
+  
+  # 3) a single lookup for all possible survey‐column renames
+  survey_renames <- c(
+    ifoIndTradeClimate = "ifo\\_Climate",
+    ifoIndTradeCurrent = "ifo\\_Current",
+    ifoIndTradeExp     = "ifo\\_Exp",
+    ESI                = "ESI",
+    GfKBCE             = "GfKBCE",
+    GfKIE              = "GfKIE",
+    GfKWtB             = "GfKWtB",
+    GfKCCI             = "GfKCCI"
+  )
+  
+  # 4) apply those renames to the df's names
+  new_names <- names(df)
+  for (sv in surveys_to_include) {
+    new_names[new_names == sv] <- survey_renames[sv]
+  }
+  
+  # 5) figure out how many right‐aligned 'r' columns
+  n_nums <- ncol(df) - 2
+  
+  # 6) grab raw LaTeX tabular from kable()
+  raw_tab <- df %>%
+    kable(
+      format   = "latex",
+      booktabs = TRUE,
+      escape   = FALSE,
+      align    = c("l","l", rep("r", n_nums)),
+      col.names= new_names
+    ) %>%
+    as.character()
+  
+  # 7) replace booktabs rules with \hline
+  raw_tab <- gsub("\\\\toprule",    "\\\\hline", raw_tab)
+  raw_tab <- gsub("\\\\midrule",    "\\\\hline", raw_tab)
+  raw_tab <- gsub("\\\\bottomrule", "\\\\hline", raw_tab)
+ 
+  # 8) build dynamic footnote definitions
+  defs <- list(
+    ifoIndTradeClimate = "ifo business climate for the industry \\& trade (balances)",
+    ifoIndTradeCurrent = "current business situation for the industry \\& trade (balances)",
+    ifoIndTradeExp     = "ifo business cycle expectations for the industry \\& trade (balances)",
+    ESI                = "Economic Sentiment Indicator",
+    GfKBCE             = "GfK: business cycle expectations",
+    GfKIE              = "GfK: income expectations",
+    GfKWtB             = "GfK: willingness-to-buy",
+    GfKCCI             = "GfK: consumer climate indicator"
+  )
+  foot_items <- vapply(
+    surveys_to_include,
+    function(sv) paste0("‘", survey_renames[sv], "’ = ", defs[[sv]]),
+    character(1)
+  )
+  footnote_text <- paste0(
+    "Note: ", 
+    paste(foot_items, collapse="; "),
+    ". For survey correlations, the coefficient is shown only if that topic ",
+    "is among the top 20 in absolute correlation with that survey; otherwise it is NA. ",
+    "A topic is crossed out if its relationship with ", econ_var, " was judged difficult to explain economically."
+  )
+  
+  # 9) assemble final .tex
+  full_tex <- paste0(
+    "\\begin{table}[h!]\n",
+    "  \\centering\n",
+    "  \\footnotesize\n",
+    "  \\renewcommand{\\arraystretch}{1.3}\n",
+    sprintf("  \\caption{Topics Most Correlated with %s and Selected Surveys}\n", econ_var),
+    "  \\label{tab:cor_", tolower(econ_var), "}\n\n",
+    paste(raw_tab, collapse="\n"), "\n\n",
+    "  \\begin{minipage}{\\textwidth}\n",
+    "    \\vspace{0.2cm}\n",
+    "    \\small\n",
+    "    \\setlength{\\baselineskip}{0.8\\baselineskip}\n",
+    footnote_text, "\n",
+    "  \\end{minipage}\n",
+    "\\end{table}\n"
+  )
+  
+  # 10) write it out
+  writeLines(full_tex, output_file)
+}
+
+# For GDP:
+make_corr_table(
+  econ_var = "GDP",
+  n_top = 15,
+  surveys_to_include = c("ifoIndTradeClimate","ifoIndTradeCurrent","ifoIndTradeExp","ESI"),
+  topics_to_cross      = c("T121","T56","T31","T78","T172")
+)
+
+# For Consumption:
+make_corr_table(
+  econ_var = "Consumption",
+  n_top = 20,
+  surveys_to_include = c("GfKBCE","GfKIE","GfKWtB","GfKCCI"),
+  topics_to_cross      = c("T128", "T193", "T138", "T79", "T8", "T115", 
+                           "T119", "T184", "T121", "T132")
+)
+
+# For Investment:
+make_corr_table(
+  econ_var = "Investment",
+  n_top = 16,
+  surveys_to_include = c("ifoIndTradeClimate","ifoIndTradeCurrent","ifoIndTradeExp","ESI"),
+  topics_to_cross      = c("T62", "T99", "T104", "T121", "T189", "T19") 
+)
 
