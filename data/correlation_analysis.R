@@ -9,6 +9,7 @@ library(purrr)
 library(knitr)
 library(kableExtra)
 library(stringr)
+library(openxlsx)
 
 # FUNCTIONS ----
 #_____________________________________________________#
@@ -75,7 +76,8 @@ bw = 1200
 #_extend to 7-day week
 #_____________________________________________________#
 
-df_raw <- read.csv("../topics/daily_topics.csv")
+df_raw <- read.csv("../sentiment/sentiment_adjusted_daily_topics.csv") %>%
+  select(-any_of("X"))
 
 # add date and quarter variable
 df_raw %>%
@@ -292,7 +294,11 @@ make_corr_table <- function(
     n_top,
     surveys_to_include,
     topics_to_cross,
-    output_file = paste0("correlation_table_", econ_var, ".tex")
+    topic_type,         # e.g. "topics", "topics_BPW", "topics_uncertainty"
+    estimation_period,  # e.g. "2007", "2018"
+    num_topics,         # e.g. "200", "100"
+    source,             # e.g. "all", "dpa", "hb", "sz", "welt"
+    output_dir = "correlations"
 ) {
   # 1) Define topic labels
   topic_labels <- c(
@@ -334,7 +340,21 @@ make_corr_table <- function(
     "T110" = "Technological Innovation",
     "T189" = "Role and Influence",
     "T19"  = "Family and Bereavement",
-    "T23"  = "Insolvency and Financial Rescue"
+    "T23"  = "Insolvency and Financial Rescue",
+    "T183" = "\\makecell[tc]{Financial and Economic \\\\ Performance}",
+    "T154" = "Electronics Industry",
+    "T167" = "Corporate Financial Performance",
+    "T112" = "Trade Fairs",
+    "T7"   = "Mergers and Acquisition",
+    "T37"  = "Russian Politics",
+    "T145" = "Italian Politics and Industry",
+    "T36"  = "Global Development and Poverty",
+    "T142" = "\\makecell[tc]{Employment Contracts \\\\ and Severance Rights}",
+    "T161" = "\\makecell[tc]{Polish Politics \\\\ and Coal Mining}",
+    "T197" = "Aerospace Industry",
+    "T68"  = "International Financial Aid",
+    "T9"   = "\\makecell[tc]{Small and Medium-Sized \\\\ Enterprises}",
+    "T143" = "Financial Advice and Risks"
   )
   
   # 2) build the dataframe of top correlations
@@ -422,17 +442,53 @@ make_corr_table <- function(
     GfKWtB             = "GfK: willingness-to-buy",
     GfKCCI             = "GfK: consumer climate indicator"
   )
+  
   foot_items <- vapply(
     surveys_to_include,
     function(sv) paste0("‘", survey_renames[sv], "’ = ", defs[[sv]]),
     character(1)
   )
+  
+  caption_text <- if (topic_type == "topics") {
+    sprintf("  \\caption{Topics Most Correlated with %s and Selected Surveys}\n", econ_var)
+  } else if (topic_type == "topics_BPW") {
+    sprintf("  \\caption{Sentiment-adjusted Topics (BPW) Most Correlated with %s and Selected Surveys}\n", econ_var)
+  } else {
+    sprintf("  \\caption{%s Most Correlated with %s and Selected Surveys}\n",
+            topic_type, econ_var)
+  }
+  
+  label_text <- sprintf(
+    "  \\label{tab:cor_%s_%s_%s_%s_%s}\n",
+    tolower(econ_var),
+    topic_type,
+    estimation_period,
+    num_topics,
+    source
+  )
+  
+  note_body <- if (topic_type == "topics") {
+    sprintf(
+      "For survey correlations, the coefficient is shown only if that topic is among the top 20 in absolute correlation with that survey; otherwise it is NA. A topic is crossed out if its relationship with %s was judged difficult to explain economically.",
+      econ_var
+    )
+  } else if (topic_type == "topics_BPW") {
+    sprintf(
+      "For survey correlations, the coefficient is shown only if that sentiment-adjusted topic (BPW) is among the top 20 in absolute correlation with that survey; otherwise it is NA. A sentiment-adjusted topic (BPW) is crossed out if its relationship with %s was judged difficult to explain economically.",
+      econ_var
+    )
+  } else {
+    sprintf(
+      "For survey correlations, the coefficient is shown only if that topic (%s) is among the top 20 in absolute correlation with that survey; otherwise it is NA. A topic is crossed out if its relationship with %s was judged difficult to explain economically.",
+      topic_type,
+      econ_var
+    )
+  }
+  
   footnote_text <- paste0(
     "Note: ", 
-    paste(foot_items, collapse="; "),
-    ". For survey correlations, the coefficient is shown only if that topic ",
-    "is among the top 20 in absolute correlation with that survey; otherwise it is NA. ",
-    "A topic is crossed out if its relationship with ", econ_var, " was judged difficult to explain economically."
+    paste(foot_items, collapse="; "), ". ",
+    note_body
   )
   
   # 9) assemble final .tex
@@ -441,8 +497,8 @@ make_corr_table <- function(
     "  \\centering\n",
     "  \\footnotesize\n",
     "  \\renewcommand{\\arraystretch}{1.3}\n",
-    sprintf("  \\caption{Topics Most Correlated with %s and Selected Surveys}\n", econ_var),
-    "  \\label{tab:cor_", tolower(econ_var), "}\n\n",
+    caption_text,
+    label_text, "\n",
     paste(raw_tab, collapse="\n"), "\n\n",
     "  \\begin{minipage}{\\textwidth}\n",
     "    \\vspace{0.2cm}\n",
@@ -454,15 +510,91 @@ make_corr_table <- function(
   )
   
   # 10) write it out
+  
+  # ensure the subfolder exists
+  if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+  
+  # build the output path
+  output_file <- file.path(
+    output_dir,
+    paste0(
+      "correlation_table_",
+      econ_var, "_",
+      topic_type, "_",
+      estimation_period, "_",
+      num_topics, "_",
+      source,
+      ".tex"
+    )
+  )
+  
   writeLines(full_tex, output_file)
+  
+  # 11) extract the non-crossed topics for the XLSX
+  defs_df <- df %>%
+    filter(!ID %in% topics_to_cross) %>%
+    mutate(
+      Description = map_chr(ID, function(mnemonic) {
+        label <- topic_labels[mnemonic]
+        if (str_detect(label, "\\\\makecell")) {
+          # pull out text inside the braces
+          body <- str_match(label, "\\\\makecell\\[.*?\\]\\{(.*)\\}")[,2]
+          # collapse any LaTeX line-breaks and remove runs of more than one space
+          clean <- body %>%
+            str_replace_all("\\\\\\\\", " ") %>%  # turn \\ into space
+            str_squish()                          # collapse runs of spaces
+          clean
+        } else {
+          str_squish(label)
+        }
+      })
+    ) %>%
+    select(Mnemonic = ID, Description) %>%
+    mutate(Group = "Text")
+  
+  # 12) write to the XLSX
+  if (!dir.exists("data_text")) dir.create("data_text", recursive = TRUE)
+  xlsx_file <- file.path(
+    "data_text",
+    paste0("variables_definitions_",
+           econ_var, "_",
+           topic_type, "_",
+           estimation_period, "_",
+           num_topics, "_",
+           source, ".xlsx")
+  )
+  wb <- createWorkbook()
+  addWorksheet(wb, "Tabelle1")
+  # header style: normal font, no bold, left aligned
+  headerStyle <- createStyle(
+    fontName    = "Calibri",
+    fontSize    = 11,
+    textDecoration = NULL,
+    halign      = "left"
+  )
+  writeData(
+    wb, 
+    sheet = "Tabelle1", 
+    x     = defs_df, 
+    headerStyle = headerStyle
+  )
+  # auto‐size columns
+  setColWidths(wb, sheet = "Tabelle1", cols = 1:ncol(defs_df), widths = "auto")
+  saveWorkbook(wb, xlsx_file, overwrite = TRUE)
 }
+
+## TOPICS ##
 
 # For GDP:
 make_corr_table(
   econ_var = "GDP",
   n_top = 15,
   surveys_to_include = c("ifoIndTradeClimate","ifoIndTradeCurrent","ifoIndTradeExp","ESI"),
-  topics_to_cross      = c("T121","T56","T31","T78","T172")
+  topics_to_cross      = c("T121","T56","T31","T78","T172"),
+  topic_type          = "topics",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
 )
 
 # For Consumption:
@@ -471,7 +603,11 @@ make_corr_table(
   n_top = 20,
   surveys_to_include = c("GfKBCE","GfKIE","GfKWtB","GfKCCI"),
   topics_to_cross      = c("T128", "T193", "T138", "T79", "T8", "T115", 
-                           "T119", "T184", "T121", "T132")
+                           "T119", "T184", "T121", "T132"),
+  topic_type          = "topics",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
 )
 
 # For Investment:
@@ -479,6 +615,49 @@ make_corr_table(
   econ_var = "Investment",
   n_top = 16,
   surveys_to_include = c("ifoIndTradeClimate","ifoIndTradeCurrent","ifoIndTradeExp","ESI"),
-  topics_to_cross      = c("T62", "T99", "T104", "T121", "T189", "T19") 
+  topics_to_cross      = c("T62", "T99", "T104", "T121", "T189", "T19"),
+  topic_type          = "topics",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
 )
+
+## SENTIMENT-ADJUSTED TOPICS (BPW) ##
+# For GDP:
+make_corr_table(
+  econ_var = "GDP",
+  n_top = 11,
+  surveys_to_include = c("ifoIndTradeClimate","ifoIndTradeCurrent","ifoIndTradeExp","ESI"),
+  topics_to_cross      = c("T56"),
+  topic_type          = "topics_BPW",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
+)
+
+# For Consumption:
+make_corr_table(
+  econ_var = "Consumption",
+  n_top = 17,
+  surveys_to_include = c("GfKBCE","GfKIE","GfKWtB","GfKCCI"),
+  topics_to_cross      = c("T128", "T138", "T193", "T121", "T8", "T161", 
+                           "T79"),
+  topic_type          = "topics_BPW",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
+)
+
+# For Investment:
+make_corr_table(
+  econ_var = "Investment",
+  n_top = 11,
+  surveys_to_include = c("ifoIndTradeClimate","ifoIndTradeCurrent","ifoIndTradeExp","ESI"),
+  topics_to_cross      = c("T56"),
+  topic_type          = "topics_BPW",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
+)
+
 

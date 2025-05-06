@@ -64,14 +64,14 @@ bw_filter <- function(y, bw)
 #_specify vintage,
 #_sample_start,
 #_window of moving average,
-#_band width
+#_bandwidth
 #_name of the file with topics
 #_____________________________________________________#
 vintage <- c("2008-01-15")
 sample_start = c("1991-04-01")
 K = 30
 bw = 1200
-topics_file <- "../topics/daily_topics.csv"
+topics_file <- "../sentiment/sentiment_adjusted_daily_topics.csv"
 
 # Convert vintage to Date
 vintage_date <- as.Date(vintage)  
@@ -101,7 +101,8 @@ if (vintage_date < last_day_m) {
 #_select sample,
 #_extend to 7-day week
 #_____________________________________________________#
-df_raw <- read.csv(topics_file)
+df_raw <- read.csv(topics_file) %>%
+  select(-any_of("X"))
 
 # add date and quarter variable
 df_raw %>%
@@ -188,8 +189,12 @@ df_topics_trafo_M <- df_topics_trafo %>%
   pivot_wider(id_cols = date, names_from = topic, values_from = avg_vals)
 
 # 10 most correlated and meaningful topics (GDP, <2008, non-adjusted)
-list_topics_select <- c("T50", "T150", "T29", "T21", "T38", "T108", "T59",
-                        "T120", "T91", "T134")
+#list_topics_select <- c("T50", "T150", "T29", "T21", "T38", "T108", "T59",
+#                        "T120", "T91", "T134")
+
+# 10 most correlated and meaningful sentiment-adjusted topics (BPW) (GDP, <2008, sentiment-adjusted, BPW)
+list_topics_select <- c("T50", "T183", "T120", "T29", "T150", "T154", "T167",
+                        "T21", "T112", "T7")
 
 df_topics_trafo_M <- df_topics_trafo_M %>%
   select(date, all_of(list_topics_select))

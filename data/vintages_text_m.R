@@ -63,8 +63,8 @@ bw_filter <- function(y, bw)
 # THE MAIN FUNCTION ----
 
 prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30, 
-                            bw = 1200, topics_file = "../topics/daily_topics.csv",
-                            forecast_var = "Investment", topic_type = "topics",
+                            bw = 1200, topics_file = "../sentiment/sentiment_adjusted_daily_topics.csv",
+                            forecast_var = "Consumption", topic_type = "topics_BPW",
                             estimation_period = "2007", num_topics = "200",
                             source = "all") {
   #_____________________________________________________#
@@ -108,7 +108,8 @@ prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30,
   #_select sample,
   #_extend to 7-day week
   #_____________________________________________________#
-  df_raw <- read.csv(topics_file)
+  df_raw <- read.csv(topics_file) %>%
+    select(-any_of("X"))
   
   # add date and quarter variable
   df_raw %>%
@@ -203,8 +204,16 @@ prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30,
   #                        "T100", "T140", "T5")
   
   # 10 most correlated and meaningful topics (Investment, <2008, non-adjusted)
-  list_topics_select <- c("T150", "T50", "T29", "T108", "T91", "T110", "T59",
-                          "T38", "T120", "T23")
+  #list_topics_select <- c("T150", "T50", "T29", "T108", "T91", "T110", "T59",
+  #                        "T38", "T120", "T23")
+  
+  # 10 most correlated and meaningful sentiment-adjusted topics (BPW) (GDP, <2008, sentiment-adjusted, BPW)
+  #list_topics_select <- c("T50", "T183", "T120", "T29", "T150", "T154", "T167",
+  #                        "T21", "T112", "T7")
+  
+  # 10 most correlated and meaningful sentiment-adjusted topics (BPW) (Consumption, <2008, sentiment-adjusted, BPW)
+  list_topics_select <- c("T140", "T78", "T118", "T45", "T37", "T145", "T36",
+                          "T142", "T197", "T68")
   
   df_topics_trafo_M <- df_topics_trafo_M %>%
     select(date, all_of(list_topics_select))
