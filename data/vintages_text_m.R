@@ -64,7 +64,7 @@ bw_filter <- function(y, bw)
 
 prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30, 
                             bw = 1200, topics_file = "../sentiment/sentiment_adjusted_daily_topics.csv",
-                            forecast_var = "Consumption", topic_type = "topics_BPW",
+                            forecast_var = "Investment", topic_type = "topics_BPW",
                             estimation_period = "2007", num_topics = "200",
                             source = "all") {
   #_____________________________________________________#
@@ -212,8 +212,12 @@ prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30,
   #                        "T21", "T112", "T7")
   
   # 10 most correlated and meaningful sentiment-adjusted topics (BPW) (Consumption, <2008, sentiment-adjusted, BPW)
-  list_topics_select <- c("T140", "T78", "T118", "T45", "T37", "T145", "T36",
-                          "T142", "T197", "T68")
+  #list_topics_select <- c("T140", "T78", "T118", "T45", "T37", "T145", "T36",
+  #                        "T142", "T197", "T68")
+  
+  # 10 most correlated and meaningful sentiment-adjusted topics (BPW) (Investment, <2008, sentiment-adjusted, BPW)
+  list_topics_select <- c("T150", "T29", "T154", "T9", "T183", "T21", "T167",
+                          "T50", "T143", "T120")    
   
   df_topics_trafo_M <- df_topics_trafo_M %>%
     select(date, all_of(list_topics_select))
