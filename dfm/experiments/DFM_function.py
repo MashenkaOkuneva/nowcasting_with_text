@@ -108,10 +108,10 @@ def vintage_dates(target_month):
     
     return vintages
 
-def load_text_data(vintage, q_var, text_type="topics", estimation_period="2007", num_topics="200", source="all"):
+def load_text_data(vintage, q_var, text_type="topics", estimation_period="2007", num_topics="200", source="all", selected=""):
     
     # 1. Download data
-    filename = f'../../data/vintages_monthly_{q_var}_{text_type}_{estimation_period}_{num_topics}_{source}/{vintage}.csv'
+    filename = f'../../data/vintages_monthly_{q_var}_{text_type}_{estimation_period}_{num_topics}_{source}{selected}/{vintage}.csv'
     orig_text = pd.read_csv(filename).dropna(how='all')
     
     # 2. Extract transformation information
@@ -169,7 +169,7 @@ def factor_specification(groups, additional_factors=None):
 
 # --- Main function that produces forecasts for the quarter of interest based on 7 vintages ---
 def get_forecasts(forecast_month, q_var, additional_factors, factor_multiplicities, factor_orders, start, text_type="topics",
-                 estimation_period="2007", num_topics="200", source = "all", with_text=False):
+                 estimation_period="2007", num_topics="200", source = "all", selected = "", with_text=False):
     """
     Given the input parameters, this function:
       - Generates the list of vintage dates for the forecast month.
@@ -190,6 +190,7 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
       estimation_period: Period marker (e.g., "2007" or "2018") indicating estimation sample for topics
       num_topics: Number of topics in the model (e.g., "200" or "100")
       source: "all", "dpa", "hb", "sz", or "welt"
+      selected: "_selected" or ""
       with_text: If True, forecast with text variables; if False, forecast without
     
     Returns:
@@ -210,7 +211,8 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
                                       text_type=text_type, 
                                       estimation_period=estimation_period, 
                                       num_topics=num_topics,
-                                      source=source)
+                                      source=source,
+                                      selected=selected)
 
             # Merge the monthly economic data (dta_m) with the text data
             dta[vint].combined = dta[vint].dta_m.merge(text_obj.dta_text, left_index=True, right_index=True, how='outer')
@@ -223,7 +225,7 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
     defn_q.index = defn_q['Mnemonic']
     if with_text:
         # Load the definitions Excel file for text variables
-        defn_text = pd.read_excel(f'../../data/data_text/variables_definitions_{q_var}_{text_type}_{estimation_period}_{num_topics}_{source}.xlsx')
+        defn_text = pd.read_excel(f'../../data/data_text/variables_definitions_{q_var}_{text_type}_{estimation_period}_{num_topics}_{source}{selected}.xlsx')
         defn_text.index = defn_text['Mnemonic']
 
         # Combine the definitions for monthly economic and text variables
