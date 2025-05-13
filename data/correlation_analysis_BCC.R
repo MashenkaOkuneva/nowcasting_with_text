@@ -213,11 +213,14 @@ selected_topics <- c("T27", "T127", "T11", "T81", "T77",
                      "T74", "T52", "T131", "T138", "T100")
 
 # 1. Load and compute correlations for GDP
-gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual.csv", econ_var = "growth", selected_topics = selected_topics)
+#gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual.csv", econ_var = "growth", selected_topics = selected_topics)
+gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual.csv", econ_var = "growth", selected_topics = NULL)
 # 2. For Consumption
-cons_corr <- calc_topic_corr("../dfm/Consumption_growth_actual.csv", econ_var = "growth", selected_topics = selected_topics)
+#cons_corr <- calc_topic_corr("../dfm/Consumption_growth_actual.csv", econ_var = "growth", selected_topics = selected_topics)
+cons_corr <- calc_topic_corr("../dfm/Consumption_growth_actual.csv", econ_var = "growth", selected_topics = NULL)
 # 3. For Investment
-inv_corr <- calc_topic_corr("../dfm/Investment_growth_actual.csv", econ_var = "growth", selected_topics = selected_topics)
+#inv_corr <- calc_topic_corr("../dfm/Investment_growth_actual.csv", econ_var = "growth", selected_topics = selected_topics)
+inv_corr <- calc_topic_corr("../dfm/Investment_growth_actual.csv", econ_var = "growth", selected_topics = NULL)
 
 # Combine the three results
 # Do a full join so that every topic that appears in at least one top-20 is retained
@@ -322,11 +325,32 @@ make_corr_table <- function(
     "T11"  = "Mergers and Acquisitions",
     "T81"  = "\\makecell[tc]{ Corporate Restructuring and \\\\ Job Cuts in Germany}",
     "T77"  = "Private Investment",
-    "T74" = "\\makecell[tc]{ Concerns about Economic\\\\ Bubbles and Recessions}",
+    "T74"  = "\\makecell[tc]{ Concerns about Economic\\\\ Bubbles and Recessions}",
     "T52"  = "\\makecell[tc]{ German Automobile Industry \\\\ and Major Manufacturers}",
     "T131" = "\\makecell[tc]{German Investments in \\\\ Emerging Markets}",
     "T138" = "\\makecell[tc]{ Financial and Economic \\\\ Performance}",
-    "T100"  = "\\makecell[tc]{ Market Reactions to \\\\News}"
+    "T100" = "\\makecell[tc]{ Market Reactions to \\\\News}",
+    "T73"  = "\\makecell[tc]{ International Relations and \\\\ Diplomacy}",
+    "T151" = "\\makecell[tc]{ Balkan Conflicts and \\\\ International Responses}",
+    "T105" = "\\makecell[tc]{ Democracy and Leadership \\\\ in History }",
+    "T180" = "\\makecell[tc]{International Summits \\\\ and Conferences}",
+    "T191" = "\\makecell[tc]{Monetary Policy and \\\\ Central Banking}",
+    "T94"  = "Religion",
+    "T45"  = "\\makecell[tc]{Political Dynamics of the \\\\ FDP and Coalition Government}",
+    "T95"  = "\\makecell[tc]{Middle East Politics \\\\ and Israeli-Palestinian Conflict}",
+    "T35"  = "\\makecell[tc]{Russia and Post-Soviet \\\\ Dynamics}",
+    "T166" = "\\makecell[tc]{ Infrastructure and \\\\ Transportation Projects}",
+    "T102" = "\\makecell[tc]{  Taxation and Fiscal \\\\ Policy}",
+    "T93"  = "\\makecell[tc]{Government Budget and \\\\ Fiscal Policy}",
+    "T30"  = "\\makecell[tc]{ Urban Development \\\\ and Real Estate}",
+    "T126" = "\\makecell[tc]{ Unemployment and Labor \\\\ Market Policies}",
+    "T28"  = "Uncertainty and Expectations",
+    "T7"   = "\\makecell[tc]{ Culture, Arts \\\\ and Literature}",
+    "T147" = "\\makecell[tc]{ Business Financing and \\\\ Credit Solutions}",
+    "T15"  = "General Commentary",
+    "T168" = "\\makecell[tc]{ Derivatives and Financial \\\\ Instruments}",
+    "T157" = "\\makecell[tc]{French Politics and \\\\ Finance}",
+    "T50"  = "\\makecell[tc]{ Personal Opinions and \\\\ Beliefs in Interviews}"
   )
   
   # 2) build the dataframe of top correlations
@@ -607,6 +631,35 @@ make_corr_table(
   source              = "all",
   selected            = "_selected",
   selected_topics = selected_topics
+)
+
+## SIGN-ADJUSTED TOPICS (BCC) MOST CORRELATED WITH AN ECONOMIC VARIABLE##
+# For Consumption:
+make_corr_table(
+  econ_var = "Consumption",
+  n_top = 15,
+  surveys_to_include = c("GfKBCE","GfKIE","GfKWtB","GfKCCI"),
+  topics_to_cross      = c("T151", "T105", "T94", "T45", "T30"),
+  topic_type          = "topics_BCC",
+  estimation_period   = "2009",
+  num_topics          = "200",
+  source              = "all",
+  selected            = "",
+  selected_topics = NULL
+)
+
+# For Investment:
+make_corr_table(
+  econ_var = "Investment",
+  n_top = 12,
+  surveys_to_include = c("ifoIndTradeClimate","ifoIndTradeCurrent","ifoIndTradeExp","ESI"),
+  topics_to_cross      = c("T7", "T15"),
+  topic_type          = "topics_BCC",
+  estimation_period   = "2009",
+  num_topics          = "200",
+  source              = "all",
+  selected            = "",
+  selected_topics = NULL
 )
 
 
