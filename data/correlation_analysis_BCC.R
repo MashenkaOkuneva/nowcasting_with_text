@@ -426,7 +426,7 @@ make_corr_table <- function(
   } else if (topic_type == "topics_BPW") {
     sprintf("  \\caption{Sentiment-adjusted Topics (BPW) Most Correlated with %s and Selected Surveys}\n", econ_var)
   } else if (topic_type == "topics_BCC" && !is.null(selected_topics)) {
-    sprintf("  \\caption{Selected Sign-adjusted Topics (BCC) and Surveys}\n")
+    sprintf("  \\caption{Correlations of Selected Sign-adjusted Topics (BCC) with %s and Surveys}\n", econ_var)
   } else if (topic_type == "topics_BCC" && is.null(selected_topics)) {
     sprintf("  \\caption{Sign-adjusted Topics (BCC) Most Correlated with %s and Selected Surveys}\n", econ_var)
   } else {
