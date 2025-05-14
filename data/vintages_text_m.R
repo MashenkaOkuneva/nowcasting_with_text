@@ -64,9 +64,9 @@ bw_filter <- function(y, bw)
 
 prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30, 
                             bw = 1200, topics_file = "../sentiment/sign_adjusted_daily_topics_format.csv",
-                            forecast_var = "GDP", topic_type = "topics_BCC",
+                            forecast_var = "Consumption", topic_type = "topics_BCC",
                             estimation_period = "2009", num_topics = "200",
-                            source = "all", selected = "_selected") {
+                            source = "all", selected = "") {
   #_____________________________________________________#
   # vintage: when the forecast is produced
   # sample_start: starting point of the data analysis period
@@ -217,12 +217,16 @@ prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30,
   #                        "T142", "T197", "T68")
   
   # 10 most correlated and meaningful sentiment-adjusted topics (BPW) (Investment, <2008, sentiment-adjusted, BPW)
-  list_topics_select <- c("T150", "T29", "T154", "T9", "T183", "T21", "T167",
-                          "T50", "T143", "T120")
+  #list_topics_select <- c("T150", "T29", "T154", "T9", "T183", "T21", "T167",
+  #                        "T50", "T143", "T120")
   
-  # 10 most correlated and meaningful sign-adjusted topics (BCC) (GDP, <2010, sign-adjusted, BCC)
-  list_topics_select <- c("T27", "T127", "T11", "T81", "T77", "T74", "T52",
-                          "T131", "T138", "T100")   
+  # 10 pre-selected sign-adjusted topics (BCC) (GDP/Consumption/Investment, <2010, sign-adjusted, BCC)
+  #list_topics_select <- c("T27", "T127", "T11", "T81", "T77", "T74", "T52",
+  #                        "T131", "T138", "T100")
+  
+  # 10 most correlated and meaningful sign-adjusted topics (BCC) (Consumption, <2010, sign-adjusted, BCC)
+  list_topics_select <- c("T73", "T180", "T191", "T95", "T35", "T166", "T102",
+                          "T93", "T126", "T28")   
   
   df_topics_trafo_M <- df_topics_trafo_M %>%
     select(date, all_of(list_topics_select))
