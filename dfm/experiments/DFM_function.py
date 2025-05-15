@@ -131,7 +131,7 @@ def load_text_data(vintage, q_var, text_type="topics", estimation_period="2007",
         dta_text=dta_text, 
         transform_text=transform_text)
 
-def factor_specification(groups, additional_factors=None):
+def factor_specification(groups, additional_factors=None, q_var_description=None):
     """
     Construct a dictionary mapping each variable
     to a list of factors according to the desired specification.
@@ -147,16 +147,33 @@ def factor_specification(groups, additional_factors=None):
           - If "all", then each variable loads on a global factor and a group-specific factor.
           - If a list (e.g. ['Labor market'] or ['Prices', 'Labor market']), 
             then a variable gets the extra factor only if its group is in that list.
+          - If "HardSurveys+Text", then separate factors for Hard+Surveys and Text data (the latter also loads on q_var growth)
+          
+      q_var_description : str
+          The Description of the quarterly variable (e.g., 'Gross Domestic Product')
             
     Returns:
       A dictionary where keys are the variable names and values are lists of factors.
     """
     factors = {}
+    if additional_factors == "HardSurveys+Text":
+        for _, row in groups.iterrows():
+            desc = row['Description']
+            if desc == q_var_description:
+                # q_var loads on both factors
+                factors[desc] = ['HardSurveys', 'Text']
+            elif row['Group'] == 'Text':
+                factors[desc] = ['Text']
+            else:
+                factors[desc] = ['HardSurveys']
+                
+        return factors
+
     for _, row in groups.iterrows():
         desc = row['Description']
         group = row['Group']
         facs = ['Global']  # Always include the global factor
-        
+
         if additional_factors:
             # If "all" then include each variable's own group as a factor.
             if additional_factors == "all":
@@ -182,7 +199,7 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
     Parameters:
       forecast_month: string in "YYYY-MM" format (e.g., "2008-03")
       q_var: string, quarterly variable being forecasted (e.g., 'GDP')
-      additional_factors: None, "all", or a list of groups (e.g., ['Labor market'])
+      additional_factors: None, "all", a list of groups (e.g., ['Labor market']), or 'HardSurveys+Text'
       factor_multiplicities: dictionary (e.g., {'Global': 1})
       factor_orders: dictionary (e.g., {'Global': 3})
       start: string indicating start date for estimation sample (e.g., "1991-02")
@@ -270,7 +287,7 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
     groups.loc[q_var] = {'Description': q_var_description, 'Group': 'Activity'}
 
     # Define factor structure using 'factor_specification' function
-    factors = factor_specification(groups, additional_factors=additional_factors)
+    factors = factor_specification(groups, additional_factors=additional_factors, q_var_description = q_var_description)
     
     # Loop over each vintage, fit model, and store forecast
     forecasts = {}
