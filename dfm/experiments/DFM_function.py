@@ -186,7 +186,7 @@ def factor_specification(groups, additional_factors=None, q_var_description=None
 
 # --- Main function that produces forecasts for the quarter of interest based on 7 vintages ---
 def get_forecasts(forecast_month, q_var, additional_factors, factor_multiplicities, factor_orders, start, text_type="topics",
-                 estimation_period="2007", num_topics="200", source = "all", selected = "", with_text=False):
+                 estimation_period="2007", num_topics="200", source = "all", selected = "", with_text=False, only_text=False):
     """
     Given the input parameters, this function:
       - Generates the list of vintage dates for the forecast month.
@@ -209,6 +209,7 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
       source: "all", "dpa", "hb", "sz", or "welt"
       selected: "_selected" or ""
       with_text: If True, forecast with text variables; if False, forecast without
+      only_text: If True, forecast only with text variables; if False, use all the Hard+Surveys+Text variables
     
     Returns:
       forecasts: dict mapping vintage date (string) to forecast value (for GDP/Consumption/Investment)
@@ -230,10 +231,13 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
                                       num_topics=num_topics,
                                       source=source,
                                       selected=selected)
-
-            # Merge the monthly economic data (dta_m) with the text data
-            dta[vint].combined = dta[vint].dta_m.merge(text_obj.dta_text, left_index=True, right_index=True, how='outer')
-    
+            
+            if only_text:
+                dta[vint].combined = text_obj.dta_text.copy()
+            else:
+                # Merge the monthly economic data (dta_m) with the text data
+                dta[vint].combined = dta[vint].dta_m.merge(text_obj.dta_text, left_index=True, right_index=True, how='outer')
+        
     # Load definitions for monthly and quarterly variables
     defn_m = pd.read_excel('../../data/data_monthly/variables_definitions.xlsx')
     defn_m.index = defn_m['Mnemonic']
@@ -244,9 +248,12 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
         # Load the definitions Excel file for text variables
         defn_text = pd.read_excel(f'../../data/data_text/variables_definitions_{q_var}_{text_type}_{estimation_period}_{num_topics}_{source}{selected}.xlsx')
         defn_text.index = defn_text['Mnemonic']
-
-        # Combine the definitions for monthly economic and text variables
-        defn_combined = pd.concat([defn_m, defn_text])
+        
+        if only_text:
+            defn_combined = defn_text.copy()
+        else:
+            # Combine the definitions for monthly economic and text variables
+            defn_combined = pd.concat([defn_m, defn_text])
          
     # Create mapping from mnemonic to description
     map_m = defn_m['Description'].to_dict()
