@@ -313,7 +313,7 @@ def get_forecasts(forecast_month, q_var, additional_factors, factor_multipliciti
             factor_multiplicities=factor_multiplicities)
         
         # Fit the model
-        results = model.fit(disp=50)
+        results = model.fit(disp=100)
         
         # Get the point forecast for the quarter of interest
         point_forecast = results.get_prediction(start=forecast_month, end=forecast_month).predicted_mean[q_var_description]
