@@ -82,8 +82,14 @@ bw = 1200
 #df_raw <- read.csv("../topics/daily_topics.csv") %>%
 #    select(-any_of("X"))
   
-df_raw <- read.csv("../sentiment/sentiment_adjusted_daily_topics.csv") %>%
-  select(-any_of("X"))
+#df_raw <- read.csv("../sentiment/sentiment_adjusted_daily_topics.csv") %>%
+#  select(-any_of("X"))
+
+df_raw <- read.csv("../uncertainty/uncertainty_adjusted_daily_topics.csv") %>%
+    select(-any_of("X"))
+
+#df_raw <- read.csv("../sentiment/sentiment_adjusted_daily_topics_SentiWS.csv") %>%
+#  select(-any_of("X"))
 
 # add date and quarter variable
 df_raw %>%
@@ -262,7 +268,7 @@ calc_topic_corr_econ_sig <- function(file, econ_var, topics_df, selected_topics 
     
     tibble(
       topic   = topic,
-      corr    = cor(df$x, df$y, use = "complete.obs"),
+      corr    = round(cor(df$x, df$y, use = "complete.obs"), 3),
       #beta    = b,
       #t_NW    = tval,
       #p_NW    = pval,
@@ -289,6 +295,71 @@ inv_corr_sig <- calc_topic_corr_econ_sig("../dfm/Investment_growth_actual.csv", 
 combined_econ <- gdp_corr_sig %>%
   full_join(cons_corr_sig, by = "topic") %>%
   full_join(inv_corr_sig, by = "topic")
+
+# FOR CONSUMPTION: CORRELATIONS BETWEEN TOPICS AT T AND CONSUMPTION AT T+3
+# Quarterly correlations with Consumption growth + statistical significance
+calc_topic_corr_econ_sig_lags <- function(file, econ_var, topics_df, selected_topics = NULL, nw_lag = 4, lag = 3) {
+  econ <- read.csv(file, stringsAsFactors = FALSE)%>%
+    mutate(
+      yearmon = as.yearmon(date, "%Y-%m"),  
+      # Subtract lag quarters
+      date    = format(as.Date(yearmon - lag/4, frac = 1), "%Y-%m")
+    )
+  
+  topics_df <- topics_df %>% ungroup()
+  
+  # Merge topics and Consumption series on date
+  merged <- inner_join(topics_df, econ, by = "date")
+  
+  # Identify topic columns (topics start with "T")
+  topic_cols <- grep("^T", names(merged), value = TRUE)
+  
+  # Optionally restrict to "selected_topics"
+  if (!is.null(selected_topics)) {
+    topic_cols <- intersect(topic_cols, selected_topics)
+  }
+  
+  # Compute correlation for each topic
+  map_dfr(topic_cols, function(topic) {
+    # Pick non‐missing obs
+    df <- merged %>%
+      select(y = all_of(econ_var), x = all_of(topic)) %>%
+      filter(!is.na(x) & !is.na(y))
+    
+    # OLS fit
+    fit    <- lm(y ~ x, data = df)
+    # HAC cov matrix up to lag=4
+    vcovNW <- NeweyWest(fit, lag = nw_lag, prewhite = FALSE)
+    
+    b      <- coef(fit)["x"]
+    se_nw  <- sqrt(vcovNW["x","x"])
+    tval   <- b / se_nw
+    df_res <- df.residual(fit)
+    pval   <- 2 * pt(abs(tval), df = df_res, lower.tail = FALSE)
+    stars  <- symnum(pval,
+                     corr      = FALSE,
+                     cutpoints = c(0, .01, .05, .1, 1),
+                     symbols   = c("***","**","*",""))
+    
+    tibble(
+      topic   = topic,
+      corr    = cor(df$x, df$y, use = "complete.obs"),
+      #beta    = b,
+      #t_NW    = tval,
+      #p_NW    = pval,
+      signif  = stars
+    )
+  }) %>%
+    arrange(desc(abs(corr)))
+}
+
+# Lag 3 (topics at t  vs. consumption at t+3)
+cons_corr_sig_lag3 <- calc_topic_corr_econ_sig_lags("../dfm/Consumption_growth_actual.csv", 
+                                                    econ_var = "growth",
+                                                    topics_df = df_topics_trafo_Q, selected_topics = NULL, 
+                                                    nw_lag = 4, lag = 3)%>%
+  rename(Consumption_corr = corr, Consumption_star = signif)
+
 
 ## SURVEYS ##
 # Load surveys data and variable definitions
@@ -448,6 +519,13 @@ final_corr_sig <- reduce(survey_corr_list_q, function(df_left, df_s) {
   full_join(df_left, df_s, by = "topic")
 }, .init = combined_econ)
 
+# FOR CONSUMPTION: COMBINE CORRELATIONS BETWEEN TOPICS AT T AND CONSUMPTION GROWTH AT T+3 AND
+# CORRELATIONS BETWEEN TOPICS AT T AND SURVEYS AT T
+final_corr_sig_lag3 <- reduce(survey_corr_list_q, function(df_left, df_survey) {
+  full_join(df_left, df_survey, by = "topic")
+}, .init = cons_corr_sig_lag3
+)
+
 # CORRELATION TABLES FOR THE TEXT ----
 make_corr_table <- function(
     econ_var,
@@ -495,7 +573,7 @@ make_corr_table <- function(
     "T184" = "Church",
     "T132" = "Korean Nuclear Tensions",
     "T5"   = "Pricing and Cost Trends",
-    "T99"  = "Israeli–Palestinian Conflict",
+    "T99"  = "Israeli-Palestinian Conflict",
     "T104" = "\\makecell[tc]{Comparison, Contrast,\\\\ and Analysis}",
     "T110" = "Technological Innovation",
     "T189" = "Role and Influence",
@@ -514,7 +592,22 @@ make_corr_table <- function(
     "T197" = "Aerospace Industry",
     "T68"  = "International Financial Aid",
     "T9"   = "\\makecell[tc]{Small and Medium-Sized \\\\ Enterprises}",
-    "T143" = "Financial Advice and Risks"
+    "T143" = "Financial Advice and Risks",
+    "T18"  = "Agreements and Cooperation",
+    "T16"  = "Political Dynamics in Algeria",
+    "T174" = "GDR",
+    "T102" = "Trade and WTO",
+    "T182" = "Announcements and Reactions",
+    "T151" = "China",
+    "T165" = "German State Politics",
+    "T106" = "\\makecell[tc]{Postal Services \\\\ and Higher Education}",
+    "T39"  = "\\makecell[tc]{Scandals, Mistakes, \\\\ and Accountability}",
+    "T0"   = "Uncertainty and Outlook",
+    "T124" = "\\makecell[tc]{Elections and \\\\ Office Succession}",
+    "T191" = "European Union",
+    "T61"  = "Libyan Politics",
+    "T117" = "Future Vision",
+    "T164" = "Data and Privacy"
   )
   
   # 2) build the dataframe of top correlations
@@ -554,7 +647,7 @@ make_corr_table <- function(
       all_of(surveys_to_include)
     )
   
-  # 3) a single lookup for all possible survey‐column renames
+  # 3) a single lookup for all possible survey-column renames
   survey_renames <- c(
     ifoIndTradeClimate = "ifo\\_Climate",
     ifoIndTradeCurrent = "ifo\\_Current",
@@ -748,10 +841,11 @@ make_corr_table_sig <- function(
     n_top,
     surveys_to_include,
     topics_to_cross,
-    topic_type,         # e.g. "topics", "topics_BPW", "topics_uncertainty"
+    topic_type,         # e.g. "topics", "topics_BPW", "topics_uncertainty", "topics_sentiws"
     estimation_period,  # e.g. "2007", "2018"
     num_topics,         # e.g. "200", "100"
     source,             # e.g. "all", "dpa", "hb", "sz", "welt"
+    selected = "",      # e.g., "", "_lag3"
     output_dir = "correlations"
 ) {
   # 1) Define topic labels
@@ -789,7 +883,7 @@ make_corr_table_sig <- function(
     "T184" = "Church",
     "T132" = "Korean Nuclear Tensions",
     "T5"   = "Pricing and Cost Trends",
-    "T99"  = "Israeli–Palestinian Conflict",
+    "T99"  = "Israeli-Palestinian Conflict",
     "T104" = "\\makecell[tc]{Comparison, Contrast,\\\\ and Analysis}",
     "T110" = "Technological Innovation",
     "T189" = "Role and Influence",
@@ -808,7 +902,40 @@ make_corr_table_sig <- function(
     "T197" = "Aerospace Industry",
     "T68"  = "International Financial Aid",
     "T9"   = "\\makecell[tc]{Small and Medium-Sized \\\\ Enterprises}",
-    "T143" = "Financial Advice and Risks"
+    "T143" = "Financial Advice and Risks",
+    "T18"  = "Agreements and Cooperation",
+    "T16"  = "Political Dynamics in Algeria",
+    "T174" = "GDR",
+    "T102" = "Trade and WTO",
+    "T182" = "Announcements and Reactions",
+    "T151" = "China",
+    "T165" = "German State Politics",
+    "T106" = "\\makecell[tc]{Postal Services \\\\ and Higher Education}",
+    "T39"  = "\\makecell[tc]{Scandals, Mistakes, \\\\ and Accountability}",
+    "T0"   = "Uncertainty and Outlook",
+    "T124" = "\\makecell[tc]{Elections and \\\\ Office Succession}",
+    "T191" = "European Union",
+    "T61"  = "Libyan Politics",
+    "T117" = "Future Vision",
+    "T164" = "Data and Privacy",
+    "T46"  = "German Maritime Sector",
+    "T158" = "\\makecell[tc]{Kidnappings \\\\ and Hostage Situations}",
+    "T1"   = "Elections",
+    "T93"  = "Conferences and Summits",
+    "T48"  = "UN Security Council",
+    "T109" = "Financial Performance",
+    "T168" = "Housing",
+    "T170" = "\\makecell[tc]{Economic and Social \\\\ Policy}",
+    "T116" = "Japan's Economy",
+    "T14"  = "\\makecell[tc]{Corporate Structure \\\\ and M\\&A}",
+    "T98"  = "\\makecell[tc]{Public Appearances \\\\ and Reactions}",
+    "T53"  = "\\makecell[tc]{Personal Background \\\\ and Career}",
+    "T169" = "\\makecell[tc]{Economic and Political \\\\ Trends, Austria}",
+    "T190" = "\\makecell[tc]{Savings and Retirement \\\\ Planning}",
+    "T148" = "Scheduling and Delays",
+    "T155" = "Automotive Industry",
+    "T153" = "\\makecell[tc]{People, Life Stories, \\\\ and Emotions}",
+    "T139" = "Interviews and Opinions"
   )
   
   # 2) build the dataframe of top correlations
@@ -825,6 +952,16 @@ make_corr_table_sig <- function(
     arrange(desc(abs_econ)) %>%
     slice(1:n_top) %>%
     select(-abs_econ)
+  
+  if (selected == "_lag3") {
+    df <- final_corr_sig_lag3 %>%
+      select(topic, all_of(econ_corr_col), all_of(econ_star_col),
+             all_of(survey_corr_cols), all_of(survey_star_cols)) %>%
+      mutate(abs_econ = abs(.data[[econ_corr_col]])) %>%
+      arrange(desc(abs_econ)) %>%
+      slice(1:n_top) %>%
+      select(-abs_econ)
+  }
   
   # Turn each numeric corr+star pair into a single string,
   # e.g. "0.345**". If corr is NA, just return "".
@@ -887,7 +1024,7 @@ make_corr_table_sig <- function(
   # Rename columns: econ column should be econ_var; surveys get shorter names
   colnames(df)[colnames(df) == "Econ"] <- econ_var
   
-  # 3) a single lookup for all possible survey‐column renames
+  # 3) a single lookup for all possible survey-column renames
   survey_renames <- c(
     ifoIndTradeClimate = "ifo\\_Climate",
     ifoIndTradeCurrent = "ifo\\_Current",
@@ -942,22 +1079,31 @@ make_corr_table_sig <- function(
     character(1)
   )
   
-  caption_text <- if (topic_type == "topics") {
+  caption_text <- if (topic_type == "topics" && selected == "_lag3") {
+    sprintf("  \\caption{Topics Most Correlated with %s at $t+3$ (First Release, q-o-q Growth) and Selected Surveys at $t$ (Quarterly Averages)}\n", econ_var)
+  } else if (topic_type == "topics") {
     sprintf("  \\caption{Topics Most Correlated with %s (First Release, q-o-q Growth) and Selected Surveys (Quarterly Averages)}\n", econ_var)
+  } else if (topic_type == "topics_BPW" && selected == "_lag3") {
+    sprintf("  \\caption{Sentiment-adjusted Topics (BPW) Most Correlated with %s at $t+3$ (First Release, q-o-q Growth) and Selected Surveys at $t$ (Quarterly Averages)}\n", econ_var)
   } else if (topic_type == "topics_BPW") {
     sprintf("  \\caption{Sentiment-adjusted Topics (BPW) Most Correlated with %s (First Release, q-o-q Growth) and Selected Surveys (Quarterly Averages)}\n", econ_var)
+  } else if (topic_type == "topics_uncertainty") {
+    sprintf("  \\caption{Uncertainty-adjusted Topics Most Correlated with %s (First Release, q-o-q Growth) and Selected Surveys (Quarterly Averages)}\n", econ_var)
+  } else if (topic_type == "topics_sentiws") {
+    sprintf("  \\caption{Sentiment-adjusted Topics (SentiWS) Most Correlated with %s (First Release, q-o-q Growth) and Selected Surveys (Quarterly Averages)}\n", econ_var)
   } else {
     sprintf("  \\caption{%s Most Correlated with %s and Selected Surveys}\n",
             topic_type, econ_var)
   }
   
   label_text <- sprintf(
-    "  \\label{tab:cor_%s_%s_%s_%s_%s_sig}\n",
+    "  \\label{tab:cor_%s_%s_%s_%s_%s%s_sig}\n",
     tolower(econ_var),
     topic_type,
     estimation_period,
     num_topics,
-    source
+    source,
+    selected
   )
   
   note_body <- if (topic_type == "topics") {
@@ -968,6 +1114,16 @@ make_corr_table_sig <- function(
   } else if (topic_type == "topics_BPW") {
     sprintf(
       "A sentiment-adjusted topic (BPW) is crossed out if its relationship with %s was judged difficult to explain economically. Significance levels: * p<0.10; ** p<0.05; *** p<0.01. Significance levels are based on t-statistics from OLS regression with Newey-West SEs (maximum lag order = 4).",
+      econ_var
+    )
+  } else if (topic_type == "topics_uncertainty") {
+    sprintf(
+      "An uncertianty-adjusted topic is crossed out if its relationship with %s was judged difficult to explain economically. Significance levels: * p<0.10; ** p<0.05; *** p<0.01. Significance levels are based on t-statistics from OLS regression with Newey-West SEs (maximum lag order = 4).",
+      econ_var
+    )
+  } else if (topic_type == "topics_sentiws") {
+    sprintf(
+      "A sentiment-adjusted topic (SentiWS) topic is crossed out if its relationship with %s was judged difficult to explain economically. Significance levels: * p<0.10; ** p<0.05; *** p<0.01. Significance levels are based on t-statistics from OLS regression with Newey-West SEs (maximum lag order = 4).",
       econ_var
     )
   } else {
@@ -1016,12 +1172,60 @@ make_corr_table_sig <- function(
       topic_type, "_",
       estimation_period, "_",
       num_topics, "_",
-      source, "_sig",
+      source,
+      selected, "_sig",
       ".tex"
     )
   )
   
   writeLines(full_tex, output_file)
+  
+  # 11) if Consumption at t+3 or corr btw economic variable and topics_uncertainty/topics_sentiws, write non-crossed topics to Excel
+  if (selected == "_lag3" || topic_type == "topics_uncertainty" || topic_type == "topics_sentiws") {
+    defs_df <- df %>%
+      filter(!ID %in% topics_to_cross) %>%
+      mutate(
+        Description = map_chr(ID, function(mnemonic) {
+          label <- topic_labels[mnemonic]
+          if (str_detect(label, "\\\\makecell")) {
+            body <- str_match(label, "\\\\makecell\\[.*?\\]\\{(.*)\\}")[,2]
+            body %>%
+              str_replace_all("\\\\\\\\", " ") %>%
+              str_squish()
+          } else {
+            str_squish(label)
+          }
+        })
+      ) %>%
+      select(Mnemonic = ID, Description) %>%
+      mutate(Group = "Text")
+    
+    if (!dir.exists("data_text")) dir.create("data_text", recursive = TRUE)
+    xlsx_file <- file.path(
+      "data_text",
+      paste0(
+        "variables_definitions_",
+        econ_var, "_",
+        topic_type, "_",
+        estimation_period, "_",
+        num_topics, "_",
+        source,
+        selected,   
+        ".xlsx"
+      )
+    )
+    wb <- createWorkbook()
+    addWorksheet(wb, "Tabelle1")
+    headerStyle <- createStyle(
+      fontName       = "Calibri",
+      fontSize       = 11,
+      textDecoration = NULL,
+      halign         = "left"
+    )
+    writeData(wb, sheet = "Tabelle1", x = defs_df, headerStyle = headerStyle)
+    setColWidths(wb, sheet = "Tabelle1", cols = 1:ncol(defs_df), widths = "auto")
+    saveWorkbook(wb, xlsx_file, overwrite = TRUE)
+  }
 }
 
 ## TOPICS ##
@@ -1177,5 +1381,88 @@ make_corr_table_sig(
   num_topics          = "200",
   source              = "all"
 )
+
+## TOPICS MOST CORRELATED WITH CONSUMPTION AT T+3 (WITH SIGNIFICANCE)##
+# For Consumption:
+make_corr_table_sig(
+  econ_var = "Consumption",
+  n_top = 13,
+  surveys_to_include = c("GfKBCE","GfKIE","GfKWtB","GfKCCI"),
+  topics_to_cross      = c("T174", "T132", "T106"),
+  topic_type          = "topics",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all",
+  selected            = "_lag3"
+)
+
+## SENTIMENT-ADJUSTED MOST CORRELATED WITH CONSUMPTION AT T+3 (BPW, WITH SIGNIFICANCE)##
+# For Consumption:
+make_corr_table_sig(
+  econ_var = "Consumption",
+  n_top = 13,
+  surveys_to_include = c("GfKBCE","GfKIE","GfKWtB","GfKCCI"),
+  topics_to_cross      = c("T174", "T19", "T164"),
+  topic_type          = "topics_BPW",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all",
+  selected            = "_lag3"
+)
+
+## UNCERTAINTY-ADJUSTED TOPICS (WITH SIGNIFICANCE) ##
+
+# For GDP:
+make_corr_table_sig(
+  econ_var = "GDP",
+  n_top = 15,
+  surveys_to_include = c("ifoIndTradeClimate","ifoIndTradeCurrent","ifoIndTradeExp","ESI"),
+  topics_to_cross     = c("T56", "T169", "T148", "T132", "T153"),
+  topic_type          = "topics_uncertainty",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
+)
+
+# For Consumption:
+make_corr_table_sig(
+  econ_var = "Consumption",
+  n_top = 14,
+  surveys_to_include = c("GfKBCE","GfKIE","GfKWtB","GfKCCI"),
+  topics_to_cross      = c("T62", "T158", "T79", "T132"),
+  topic_type          = "topics_uncertainty",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
+)
+
+## SENTIMENT-ADJUSTED TOPICS (SentiWS, WITH SIGNIFICANCE) ##
+
+# For GDP:
+make_corr_table_sig(
+  econ_var = "GDP",
+  n_top = 13,
+  surveys_to_include = c("ifoIndTradeClimate","ifoIndTradeCurrent","ifoIndTradeExp","ESI"),
+  topics_to_cross      = c("T56", "T172", "T53"),
+  topic_type          = "topics_sentiws",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
+)
+
+# For Consumption:
+make_corr_table_sig(
+  econ_var = "Consumption",
+  n_top = 20,
+  surveys_to_include = c("GfKBCE","GfKIE","GfKWtB","GfKCCI"),
+  topics_to_cross      = c("T128", "T138", "T62", "T19", "T193", "T79", 
+                           "T115", "T184", "T132", "T121"),
+  topic_type          = "topics_sentiws",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
+)
+
+
 
 
