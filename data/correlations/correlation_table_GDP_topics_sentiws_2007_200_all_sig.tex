@@ -1,0 +1,38 @@
+\begin{table}[h!]
+  \centering
+  \footnotesize
+  \renewcommand{\arraystretch}{1.3}
+  \caption{Sentiment-adjusted Topics (SentiWS) Most Correlated with GDP (First Release, q-o-q Growth) and Selected Surveys (Quarterly Averages)}
+  \label{tab:cor_gdp_topics_sentiws_2007_200_all_sig}
+
+
+\begin{tabular}{llccccc}
+\hline
+ID & Label & GDP & ifo\_Climate & ifo\_Current & ifo\_Exp & ESI\\
+\hline
+T29 & Banking & 0.529*** & 0.473*** & 0.352*** & 0.570*** & 0.440***\\
+T50 & Crisis & 0.511*** & 0.523*** & 0.340*** & 0.729*** & 0.500***\\
+T56 & \sout{Performance and Continental AG} & 0.445*** & 0.417*** & 0.277*** & 0.568*** & 0.370***\\
+T21 & Policy Measures & 0.439** & 0.378*** & 0.215** & 0.590*** & 0.363***\\
+T108 & US Politics & 0.393** & 0.354*** & 0.203** & 0.552*** & 0.332***\\
+\addlinespace
+T120 & Economic Growth & 0.367** & 0.424*** & 0.325*** & 0.493*** & 0.432***\\
+T38 & Problem Solving & 0.361** & 0.390** & 0.235* & 0.579*** & 0.397**\\
+T134 & \makecell[tl]{Steel Industry Restructuring \\ and Downsizing} & 0.323* & 0.442*** & 0.360*** & 0.471*** & 0.472***\\
+T172 & \makecell[tl]{\sout{German Reunification and } \\ \sout{ Economic Transition}} & 0.323*** & 0.213 & 0.142 & 0.293** & 0.283*\\
+T124 & \makecell[tl]{Elections and \\ Office Succession} & 0.308** & 0.169 & 0.111 & 0.230* & 0.200\\
+\addlinespace
+T98 & \makecell[tl]{Public Appearances \\ and Reactions} & 0.308** & 0.373*** & 0.233** & 0.536*** & 0.388***\\
+T53 & \makecell[tl]{\sout{Personal Background } \\ \sout{ and Career}} & 0.302 & 0.302*** & 0.199** & 0.412*** & 0.313***\\
+T91 & \makecell[tl]{Media Coverage of \\ Plans and Rumors} & 0.301*** & 0.477*** & 0.348*** & 0.584*** & 0.493***\\
+\hline
+\end{tabular}
+
+  \begin{minipage}{1.07\textwidth}
+    \vspace{0.2cm}
+    \small
+    \setlength{\baselineskip}{0.8\baselineskip}
+Note: ‘ifo\_Climate’ = ifo business climate for the industry \& trade (balances); ‘ifo\_Current’ = current business situation for the industry \& trade (balances); ‘ifo\_Exp’ = ifo business cycle expectations for the industry \& trade (balances); ‘ESI’ = Economic Sentiment Indicator. A sentiment-adjusted topic (SentiWS) topic is crossed out if its relationship with GDP was judged difficult to explain economically. Significance levels: * p<0.10; ** p<0.05; *** p<0.01. Significance levels are based on t-statistics from OLS regression with Newey-West SEs (maximum lag order = 4).
+  \end{minipage}
+\end{table}
+

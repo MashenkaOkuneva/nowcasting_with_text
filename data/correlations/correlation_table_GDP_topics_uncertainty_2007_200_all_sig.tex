@@ -1,0 +1,40 @@
+\begin{table}[h!]
+  \centering
+  \footnotesize
+  \renewcommand{\arraystretch}{1.3}
+  \caption{Uncertainty-adjusted Topics Most Correlated with GDP (First Release, q-o-q Growth) and Selected Surveys (Quarterly Averages)}
+  \label{tab:cor_gdp_topics_uncertainty_2007_200_all_sig}
+
+
+\begin{tabular}{llccccc}
+\hline
+ID & Label & GDP & ifo\_Climate & ifo\_Current & ifo\_Exp & ESI\\
+\hline
+T134 & \makecell[tl]{Steel Industry Restructuring \\ and Downsizing} & -0.440** & -0.369*** & -0.228** & -0.535*** & -0.391***\\
+T56 & \sout{Performance and Continental AG} & -0.393*** & -0.244** & -0.121 & -0.411*** & -0.271***\\
+T21 & Policy Measures & -0.262 & -0.263* & -0.128 & -0.451*** & -0.246*\\
+T169 & \makecell[tl]{\sout{Economic and Political } \\ \sout{ Trends, Austria}} & -0.261*** & -0.212* & -0.109 & -0.353*** & -0.183\\
+T14 & \makecell[tl]{Corporate Structure \\ and M\&A} & -0.258** & -0.269*** & -0.153* & -0.420*** & -0.194*\\
+\addlinespace
+T190 & \makecell[tl]{Savings and Retirement \\ Planning} & -0.256** & -0.249** & -0.171 & -0.332*** & -0.237**\\
+T148 & \sout{Scheduling and Delays} & -0.249** & -0.141* & -0.074 & -0.231*** & -0.135*\\
+T50 & Crisis & -0.244* & -0.255** & -0.118 & -0.450*** & -0.259**\\
+T154 & Electronics Industry & -0.243** & -0.208*** & -0.070 & -0.419*** & -0.197***\\
+T7 & Mergers and Acquisition & -0.237* & -0.100 & -0.018 & -0.232* & -0.084\\
+\addlinespace
+T132 & \sout{Korean Nuclear Tensions} & 0.235** & 0.132 & 0.089 & 0.177** & 0.096\\
+T155 & Automotive Industry & -0.235* & -0.310*** & -0.196* & -0.441*** & -0.300***\\
+T120 & Economic Growth & -0.233*** & -0.260*** & -0.147 & -0.404*** & -0.279***\\
+T153 & \makecell[tl]{\sout{People, Life Stories, } \\ \sout{ and Emotions}} & -0.228 & -0.247** & -0.171 & -0.326** & -0.250**\\
+T139 & Interviews and Opinions & -0.221 & -0.211 & -0.164 & -0.241 & -0.195\\
+\hline
+\end{tabular}
+
+  \begin{minipage}{1.07\textwidth}
+    \vspace{0.2cm}
+    \small
+    \setlength{\baselineskip}{0.8\baselineskip}
+Note: ‘ifo\_Climate’ = ifo business climate for the industry \& trade (balances); ‘ifo\_Current’ = current business situation for the industry \& trade (balances); ‘ifo\_Exp’ = ifo business cycle expectations for the industry \& trade (balances); ‘ESI’ = Economic Sentiment Indicator. An uncertianty-adjusted topic is crossed out if its relationship with GDP was judged difficult to explain economically. Significance levels: * p<0.10; ** p<0.05; *** p<0.01. Significance levels are based on t-statistics from OLS regression with Newey-West SEs (maximum lag order = 4).
+  \end{minipage}
+\end{table}
+
