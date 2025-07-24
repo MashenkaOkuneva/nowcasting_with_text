@@ -63,9 +63,9 @@ bw_filter <- function(y, bw)
 # THE MAIN FUNCTION ----
 
 prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30, 
-                            bw = 1200, topics_file = "../sentiment/sign_adjusted_daily_topics_format.csv",
-                            forecast_var = "Investment", topic_type = "topics_BCC",
-                            estimation_period = "2009", num_topics = "200",
+                            bw = 1200, topics_file = "../uncertainty/uncertainty_adjusted_daily_topics.csv",
+                            forecast_var = "GDP", topic_type = "topics_uncertainty",
+                            estimation_period = "2007", num_topics = "200",
                             source = "all", selected = "") {
   #_____________________________________________________#
   # vintage: when the forecast is produced
@@ -78,7 +78,7 @@ prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30,
   # estimation_period: the end of the training set for the topic model, "2007", "2009", or "2018"
   # num_topics: number of topics, "200" or "100"
   # source: "all", "dpa", "hb", "sz", or "welt"
-  # selected: "_selected" or ""
+  # selected: "_selected", "_lag3", or ""
   #_____________________________________________________#
   
   # Convert vintage to Date
@@ -229,8 +229,24 @@ prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30,
   #                        "T93", "T126", "T28")
   
   # 10 most correlated and meaningful sign-adjusted topics (BCC) (Investment, <2010, sign-adjusted, BCC)
-  list_topics_select <- c("T27", "T131", "T138", "T81", "T147", "T168", "T11",
-                          "T157", "T50", "T127")
+  #list_topics_select <- c("T27", "T131", "T138", "T81", "T147", "T168", "T11",
+  #                        "T157", "T50", "T127")
+  
+  # 10 sign-adjusted topics (BCC) most correlated with Consumption at t+3 (Consumption, <2010, sign-adjusted, BCC)
+  #list_topics_select <- c("T43", "T42", "T121", "T18", "T51", "T182", "T133",
+  #                        "T22", "T98", "T171")
+  
+  # 10 sentiment-adjusted topics (SentiWS, 100 topics) most correlated with Consumption at t+3 (Consumption, <2008, sentiment-adjusted, SentiWS)
+  #list_topics_select <- c("T78", "T27", "T56", "T1", "T53", "T25", "T26",
+  #                        "T51", "T77", "T72")
+  
+  # 10 sentiment-adjusted topics (SentiWS, 200 topics) most correlated with GDP (GDP, <2008, sentiment-adjusted, SentiWS)
+  #list_topics_select <- c("T29", "T50", "T21", "T108", "T120", "T38", "T134",
+  #                        "T124", "T98", "T91")
+  
+  # 10 uncertainty-adjusted topics (200 topics) most correlated with GDP (GDP, <2008, uncertainty-adjusted)
+  list_topics_select <- c("T134", "T21", "T14", "T190", "T50", "T154", "T7",
+                          "T155", "T120", "T139")
   
   df_topics_trafo_M <- df_topics_trafo_M %>%
     select(date, all_of(list_topics_select))
