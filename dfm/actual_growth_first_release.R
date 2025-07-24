@@ -6,6 +6,7 @@
 library(dplyr)
 library(tidyr)
 library(lubridate)
+library(tibble)  
 
 # Function to get the first non-NA value after the given date
 get_first_value <- function(row, data_obj) {
