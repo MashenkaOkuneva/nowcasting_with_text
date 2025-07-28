@@ -85,11 +85,11 @@ bw = 1200
 #df_raw <- read.csv("../sentiment/sentiment_adjusted_daily_topics.csv") %>%
 #  select(-any_of("X"))
 
-#df_raw <- read.csv("../uncertainty/uncertainty_adjusted_daily_topics.csv") %>%
-#    select(-any_of("X"))
+df_raw <- read.csv("../uncertainty/uncertainty_adjusted_daily_topics.csv") %>%
+    select(-any_of("X"))
 
-df_raw <- read.csv("../sentiment/sentiment_adjusted_daily_topics_SentiWS.csv") %>%
-  select(-any_of("X"))
+#df_raw <- read.csv("../sentiment/sentiment_adjusted_daily_topics_SentiWS.csv") %>%
+#  select(-any_of("X"))
 
 # add date and quarter variable
 df_raw %>%
@@ -937,7 +937,13 @@ make_corr_table_sig <- function(
     "T153" = "\\makecell[tc]{People, Life Stories, \\\\ and Emotions}",
     "T139" = "Interviews and Opinions",
     "T51"  = "French Politics",
-    "T4"   = "Dutch Business"
+    "T4"   = "Dutch Business",
+    "T152" = "\\makecell[tc]{Oil Prices \\\\ and Energy Markets}",
+    "T149" = "\\makecell[tc]{Trading and \\\\ Market Movements}",
+    "T87"  = "\\makecell[tc]{Environment \\\\ and Nuclear Energy}",
+    "T111" = "Education and Youth",
+    "T123" = "Media and Newspapers",
+    "T72"  = "\\makecell[tc]{ Corporate Financial \\\\ Performance}"
   )
   
   # 2) build the dataframe of top correlations
@@ -1432,6 +1438,18 @@ make_corr_table_sig(
   n_top = 14,
   surveys_to_include = c("GfKBCE","GfKIE","GfKWtB","GfKCCI"),
   topics_to_cross      = c("T62", "T158", "T79", "T132"),
+  topic_type          = "topics_uncertainty",
+  estimation_period   = "2007",
+  num_topics          = "200",
+  source              = "all"
+)
+
+# For Investment:
+make_corr_table_sig(
+  econ_var = "Investment",
+  n_top = 17,
+  surveys_to_include = c("ifoIndTradeClimate","ifoIndTradeCurrent","ifoIndTradeExp","ESI"),
+  topics_to_cross     = c("T56", "T132", "T149", "T72", "T111", "T169", "T193"),
   topic_type          = "topics_uncertainty",
   estimation_period   = "2007",
   num_topics          = "200",
