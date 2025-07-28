@@ -63,6 +63,7 @@ __pycache__/
 !/dfm/forecasts/DFM_topics_uncertainty_2007_200_all_global_factors_GDP/*.csv
 !/dfm/forecasts/DFM_topics_uncertainty_2007_200_all_separate_factors_GDP/*.csv
 !/dfm/forecasts/DFM_topics_sentiws_2007_200_all_separate_factors_GDP/*.csv
+!/dfm/forecasts/DFM_topics_sentiws_2007_200_all_separate_factors_Investment/*.csv
 !/dfm/MSE/DFM_hard_surveys_global_factors_Consumption/*.csv
 !/dfm/MSE/DFM_hard_surveys_global_factors_GDP/*.csv
 !/dfm/MSE/DFM_hard_surveys_global_factors_Investment/*.csv
@@ -104,6 +105,7 @@ __pycache__/
 !/dfm/MSE/DFM_topics_uncertainty_2007_200_all_global_factors_GDP/*.csv
 !/dfm/MSE/DFM_topics_uncertainty_2007_200_all_separate_factors_GDP/*.csv
 !/dfm/MSE/DFM_topics_sentiws_2007_200_all_separate_factors_GDP/*.csv
+!/dfm/MSE/DFM_topics_sentiws_2007_200_all_separate_factors_Investment*.csv
 
 
 *.xlsx
