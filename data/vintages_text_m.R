@@ -63,8 +63,8 @@ bw_filter <- function(y, bw)
 # THE MAIN FUNCTION ----
 
 prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30, 
-                            bw = 1200, topics_file = "../sentiment/sentiment_adjusted_daily_topics_SentiWS.csv",
-                            forecast_var = "Investment", topic_type = "topics_sentiws",
+                            bw = 1200, topics_file = "../uncertainty/uncertainty_adjusted_daily_topics.csv",
+                            forecast_var = "Investment", topic_type = "topics_uncertainty",
                             estimation_period = "2007", num_topics = "200",
                             source = "all", selected = "") {
   #_____________________________________________________#
@@ -249,8 +249,12 @@ prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30,
   #                        "T155", "T120", "T139")
   
   # 10 sentiment-adjusted topics (SentiWS, 200 topics) most correlated with Investment (Investment, <2008, sentiment-adjusted)
-  list_topics_select <- c("T29", "T50", "T108", "T120", "T21", "T51", "T124",
-                          "T142", "T91", "T4")
+  #list_topics_select <- c("T29", "T50", "T108", "T120", "T21", "T51", "T124",
+  #                        "T142", "T91", "T4")
+  
+  # 10 uncertainty-adjusted topics (200 topics) most correlated with Investment (Investment, <2008, uncertainty-adjusted)
+  list_topics_select <- c("T134", "T152", "T154", "T21", "T93",
+                          "T16", "T190", "T87", "T150", "T59") 
   
   df_topics_trafo_M <- df_topics_trafo_M %>%
     select(date, all_of(list_topics_select))
