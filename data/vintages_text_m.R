@@ -63,8 +63,8 @@ bw_filter <- function(y, bw)
 # THE MAIN FUNCTION ----
 
 prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30, 
-                            bw = 1200, topics_file = "../uncertainty/uncertainty_adjusted_daily_topics.csv",
-                            forecast_var = "Investment", topic_type = "topics_uncertainty",
+                            bw = 1200, topics_file = "../sentiment/sentiment_adjusted_daily_topics_SentiWS.csv",
+                            forecast_var = "Consumption", topic_type = "topics_sentiws",
                             estimation_period = "2007", num_topics = "200",
                             source = "all", selected = "") {
   #_____________________________________________________#
@@ -74,7 +74,7 @@ prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30,
   # bw: bandwidth
   # topics_file: the name of the file with topics
   # forecast var: forecasted variable, "GDP", "Investment", or "Consumption"
-  # topic_type: topics or adjusted topics, "topics", "topics_BPW", or "topics_uncertainty", or "topics_BCC"
+  # topic_type: topics or adjusted topics, "topics", "topics_BPW", or "topics_uncertainty", "topics_BCC", or "topics_sentiws"
   # estimation_period: the end of the training set for the topic model, "2007", "2009", or "2018"
   # num_topics: number of topics, "200" or "100"
   # source: "all", "dpa", "hb", "sz", or "welt"
@@ -253,8 +253,12 @@ prepare_vintage <- function(vintage, sample_start = c("1991-04-01"), K = 30,
   #                        "T142", "T91", "T4")
   
   # 10 uncertainty-adjusted topics (200 topics) most correlated with Investment (Investment, <2008, uncertainty-adjusted)
-  list_topics_select <- c("T134", "T152", "T154", "T21", "T93",
-                          "T16", "T190", "T87", "T150", "T59") 
+  #list_topics_select <- c("T134", "T152", "T154", "T21", "T93",
+  #                        "T16", "T190", "T87", "T150", "T59") 
+  
+  # 10 sentiment-adjusted topics (SentiWS, 200 topics) most correlated with Consumption (Consumption, <2008, sentiment-adjusted)
+  list_topics_select <- c("T45", "T78", "T118", "T145", "T100", "T140", "T170",
+                          "T74", "T116", "T14")
   
   df_topics_trafo_M <- df_topics_trafo_M %>%
     select(date, all_of(list_topics_select))
