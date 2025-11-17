@@ -14,6 +14,7 @@ library(zoo)
 library(broom)
 library(sandwich)
 
+
 # FUNCTIONS ----
 #_____________________________________________________#
 #_ roll_mean 
@@ -79,14 +80,14 @@ bw = 1200
 #_extend to 7-day week
 #_____________________________________________________#
 
-#df_raw <- read.csv("../topics/daily_topics.csv") %>%
-#    select(-any_of("X"))
+df_raw <- read.csv("../topics/daily_topics.csv") %>%
+    select(-any_of("X"))
   
 #df_raw <- read.csv("../sentiment/sentiment_adjusted_daily_topics.csv") %>%
 #  select(-any_of("X"))
 
-df_raw <- read.csv("../uncertainty/uncertainty_adjusted_daily_topics.csv") %>%
-    select(-any_of("X"))
+#df_raw <- read.csv("../uncertainty/uncertainty_adjusted_daily_topics.csv") %>%
+#    select(-any_of("X"))
 
 #df_raw <- read.csv("../sentiment/sentiment_adjusted_daily_topics_SentiWS.csv") %>%
 #  select(-any_of("X"))
@@ -189,6 +190,10 @@ df_topics_trafo_Q <- df_topics_trafo_Q %>%
                       ifelse(quarter == 3, "09", "12"))),
                       sep = "-"))
 
+# Drop 2008-2009 to get a no-crisis version
+df_topics_trafo_Q_nc <- df_topics_trafo_Q %>%
+  filter(!year %in% c(2008, 2009))
+
 # Given a file and a variable name ("growth"), merge an economic variable with the topics data 
 # and compute correlations for each topic column. Then, return the top 20 topics sorted 
 # by descending absolute correlation.
@@ -213,11 +218,25 @@ calc_topic_corr <- function(file, econ_var = "growth", topics_df = df_topics_tra
 }
 
 # 1. Load and compute correlations for GDP
-gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual_update.csv", econ_var = "growth")
+gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual.csv", econ_var = "growth")
 # 2. For Consumption
 cons_corr <- calc_topic_corr("../dfm/Consumption_growth_actual_update.csv", econ_var = "growth")
 # 3. For Investment
 inv_corr <- calc_topic_corr("../dfm/Investment_growth_actual_update.csv", econ_var = "growth")
+
+
+#Same correlations, but without crisis years 2008-2009
+gdp_corr_nc  <- calc_topic_corr("../dfm/GDP_growth_actual.csv",
+                                econ_var  = "growth",
+                                topics_df = df_topics_trafo_Q_nc)
+
+cons_corr_nc <- calc_topic_corr("../dfm/Consumption_growth_actual_update.csv",
+                                econ_var  = "growth",
+                                topics_df = df_topics_trafo_Q_nc)
+
+inv_corr_nc  <- calc_topic_corr("../dfm/Investment_growth_actual_update.csv",
+                                econ_var  = "growth",
+                                topics_df = df_topics_trafo_Q_nc)
 
 # Combine the three results
 # Do a full join so that every topic that appears in at least one top-20 is retained
@@ -279,7 +298,7 @@ calc_topic_corr_econ_sig <- function(file, econ_var, topics_df, selected_topics 
 }
 
 # 1. Load and compute correlations for GDP
-gdp_corr_sig <- calc_topic_corr_econ_sig("../dfm/GDP_growth_actual_update.csv", econ_var = "growth",
+gdp_corr_sig <- calc_topic_corr_econ_sig("../dfm/GDP_growth_actual.csv", econ_var = "growth",
                                          topics_df = df_topics_trafo_Q, selected_topics = NULL, nw_lag = 4)%>%
                                          rename(GDP_corr = corr, GDP_star = signif)
 # 2. For Consumption
@@ -291,10 +310,37 @@ inv_corr_sig <- calc_topic_corr_econ_sig("../dfm/Investment_growth_actual_update
                                          topics_df = df_topics_trafo_Q, selected_topics = NULL, nw_lag = 4)%>%
                                          rename(Investment_corr = corr, Investment_star = signif)
 
+# Same correlations, but without crisis years 2008-2009
+gdp_corr_sig_nc <- calc_topic_corr_econ_sig("../dfm/GDP_growth_actual.csv",
+                                            econ_var  = "growth",
+                                            topics_df = df_topics_trafo_Q_nc,
+                                            selected_topics = NULL,
+                                            nw_lag   = 4) %>%
+  rename(GDP_corr_nc = corr, GDP_star_nc = signif)
+
+cons_corr_sig_nc <- calc_topic_corr_econ_sig("../dfm/Consumption_growth_actual_update.csv",
+                                             econ_var  = "growth",
+                                             topics_df = df_topics_trafo_Q_nc,
+                                             selected_topics = NULL,
+                                             nw_lag   = 4) %>%
+  rename(Consumption_corr_nc = corr, Consumption_star_nc = signif)
+
+inv_corr_sig_nc <- calc_topic_corr_econ_sig("../dfm/Investment_growth_actual_update.csv",
+                                            econ_var  = "growth",
+                                            topics_df = df_topics_trafo_Q_nc,
+                                            selected_topics = NULL,
+                                            nw_lag   = 4) %>%
+  rename(Investment_corr_nc = corr, Investment_star_nc = signif)
+
 # Combine the three results
 combined_econ <- gdp_corr_sig %>%
   full_join(cons_corr_sig, by = "topic") %>%
   full_join(inv_corr_sig, by = "topic")
+
+# Same without crisis
+combined_econ_nc <- gdp_corr_sig_nc %>%
+  full_join(cons_corr_sig_nc, by = "topic") %>%
+  full_join(inv_corr_sig_nc,  by = "topic")
 
 # FOR CONSUMPTION: CORRELATIONS BETWEEN TOPICS AT T AND CONSUMPTION AT T+3
 # Quarterly correlations with Consumption growth + statistical significance
@@ -1506,6 +1552,293 @@ make_corr_table_sig(
   source              = "all"
 )
 
+# FULL VS NC TABLES
 
+topic_labels_all <- c(
+  "T50"  = "Crisis",
+  "T150" = "Corporate Growth",
+  "T29"  = "Banking",
+  "T21"  = "Policy Measures",
+  "T38"  = "Problem Solving",
+  "T108" = "US Politics",
+  "T59"  = "Commodity Markets",
+  "T121" = "Literature and Arts",
+  "T120" = "Economic Growth",
+  "T56"  = "Performance and Continental AG",
+  "T31"  = "Governmental Reorganization",
+  "T78"  = "CSU and Leadership Dynamics",
+  "T91"  = "\\makecell[tc]{Media Coverage of \\\\ Plans and Rumors}",
+  "T172" = "\\makecell[tc]{German Reunification and \\\\ Economic Transition}",
+  "T134" = "\\makecell[tc]{Steel Industry Restructuring \\\\ and Downsizing}",
+  "T128" = "Holocaust Remembrance",
+  "T45"  = "Diplomatic Visits",
+  "T62"  = "Corporate Restructuring",
+  "T193" = "Bosnian War",
+  "T118" = "Transport Policy",
+  "T138" = "Right-Wing Extremism",
+  "T136" = "Expectations and Uncertainty",
+  "T79"  = "Afghanistan Conflict",
+  "T8"   = "Organizations and Awards",
+  "T115" = "Flight Schedules and Incidents",
+  "T74"  = "Opinion Commentary",
+  "T94"  = "Middle East Diplomacy",
+  "T100" = "Protests and Demonstrations",
+  "T119" = "Kosovo Conflict",
+  "T140" = "\\makecell[tc]{UK Politics \\\\ and Northern Ireland}",
+  "T184" = "Church",
+  "T132" = "Korean Nuclear Tensions",
+  "T5"   = "Pricing and Cost Trends",
+  "T99"  = "Israeli-Palestinian Conflict",
+  "T104" = "\\makecell[tc]{Comparison, Contrast,\\\\ and Analysis}",
+  "T110" = "Technological Innovation",
+  "T189" = "Role and Influence",
+  "T19"  = "Family and Bereavement",
+  "T23"  = "Insolvency and Financial Rescue",
+  "T183" = "\\makecell[tc]{Financial and Economic \\\\ Performance}",
+  "T154" = "Electronics Industry",
+  "T167" = "Corporate Financial Performance",
+  "T112" = "Trade Fairs",
+  "T7"   = "Mergers and Acquisition",
+  "T37"  = "Russian Politics",
+  "T145" = "Italian Politics and Industry",
+  "T36"  = "Global Development and Poverty",
+  "T142" = "\\makecell[tc]{Employment Contracts \\\\ and Severance Rights}",
+  "T161" = "\\makecell[tc]{Polish Politics \\\\ and Coal Mining}",
+  "T197" = "Aerospace Industry",
+  "T68"  = "International Financial Aid",
+  "T9"   = "\\makecell[tc]{Small and Medium-Sized \\\\ Enterprises}",
+  "T143" = "Financial Advice and Risks",
+  "T18"  = "Agreements and Cooperation",
+  "T16"  = "Political Dynamics in Algeria",
+  "T174" = "GDR",
+  "T102" = "Trade and WTO",
+  "T182" = "Announcements and Reactions",
+  "T151" = "China",
+  "T165" = "German State Politics",
+  "T106" = "\\makecell[tc]{Postal Services \\\\ and Higher Education}",
+  "T39"  = "\\makecell[tc]{Scandals, Mistakes, \\\\ and Accountability}",
+  "T0"   = "Uncertainty and Outlook",
+  "T124" = "\\makecell[tc]{Elections and \\\\ Office Succession}",
+  "T191" = "European Union",
+  "T61"  = "Libyan Politics",
+  "T117" = "Future Vision",
+  "T164" = "Data and Privacy",
+  "T46"  = "German Maritime Sector",
+  "T158" = "\\makecell[tc]{Kidnappings \\\\ and Hostage Situations}",
+  "T1"   = "Elections",
+  "T93"  = "Conferences and Summits",
+  "T48"  = "UN Security Council",
+  "T109" = "Financial Performance",
+  "T168" = "Housing",
+  "T170" = "\\makecell[tc]{Economic and Social \\\\ Policy}",
+  "T116" = "Japan's Economy",
+  "T14"  = "\\makecell[tc]{Corporate Structure \\\\ and M\\&A}",
+  "T98"  = "\\makecell[tc]{Public Appearances \\\\ and Reactions}",
+  "T53"  = "\\makecell[tc]{Personal Background \\\\ and Career}",
+  "T169" = "\\makecell[tc]{Economic and Political \\\\ Trends, Austria}",
+  "T190" = "\\makecell[tc]{Savings and Retirement \\\\ Planning}",
+  "T148" = "Scheduling and Delays",
+  "T155" = "Automotive Industry",
+  "T153" = "\\makecell[tc]{People, Life Stories, \\\\ and Emotions}",
+  "T139" = "Interviews and Opinions",
+  "T51"  = "French Politics",
+  "T4"   = "Dutch Business",
+  "T152" = "\\makecell[tc]{Oil Prices \\\\ and Energy Markets}",
+  "T149" = "\\makecell[tc]{Trading and \\\\ Market Movements}",
+  "T87"  = "\\makecell[tc]{Environment \\\\ and Nuclear Energy}",
+  "T111" = "Education and Youth",
+  "T123" = "Media and Newspapers",
+  "T72"  = "\\makecell[tc]{ Corporate Financial \\\\ Performance}",
+  "T179" = "Consumer Goods",
+  "T83"  = "Research Institutes",
+  "T84"  = "Insurance Industry",
+  "T82"  = "Economic and Monetary Union",
+  "T169" = "\\makecell[tc]{Economic and Political \\\\ Trends, Austria}",
+  "T89"  = "\\makecell[tc]{Independence and Post-Soviet \\\\ Transition}",
+  "T178" = "Labor Market and Unemployment",
+  "T13"  = "CDU/CSU-FDP Coalition Politics",
+  "T147" = "\\makecell[tc]{Stock Trading and \\\\ Financial Markets}",
+  "T75"  = "\\makecell[tc]{Accounting Standards, Reporting, \\\\ and Risk Management}",
+  "T192" = "Iraq War",
+  "T80"  = "India-Pakistan Relations",
+  "T194" = "Public Sector",
+  "T131" = "Health Policy"
+)
+
+topic_labels_all <- purrr::map_chr(
+  topic_labels_all,
+  ~ stringr::str_replace_all(.x, "\\\\makecell\\[tc\\]", "\\\\makecell[tl]")
+)
+
+############## GDP table (full vs nc)
+topics_to_cross_GDP <- c("T121","T56","T31","T78","T172")
+
+keep_topics_GDP <- final_corr_sig %>%
+  select(topic, GDP_corr) %>%
+  mutate(abs_GDP = abs(GDP_corr)) %>%
+  arrange(desc(abs_GDP)) %>%
+  slice(1:15) %>%
+  pull(topic) %>%
+  setdiff(topics_to_cross_GDP)
+
+if (!dir.exists("correlations")) dir.create("correlations", recursive = TRUE)
+
+gdp_full_vs_nc <- gdp_corr_sig %>%
+  select(topic, GDP_corr, GDP_star) %>%
+  inner_join(gdp_corr_sig_nc %>% select(topic, GDP_corr_nc, GDP_star_nc),
+             by = "topic") %>%
+  filter(topic %in% keep_topics_GDP) %>%
+  mutate(
+    GDP    = paste0(sprintf("%0.3f", GDP_corr),    GDP_star),
+    GDP_NC = paste0(sprintf("%0.3f", GDP_corr_nc), GDP_star_nc),
+    ID     = topic,
+    Label  = topic_labels_all[topic]
+  ) %>%
+  arrange(desc(abs(GDP_corr))) %>%
+  select(ID, Label, GDP, GDP_NC)
+
+tex_tab_gdp <- gdp_full_vs_nc %>%
+  kable(
+    format   = "latex",
+    booktabs = TRUE,
+    escape   = FALSE,
+    col.names = c("ID", "Label", "GDP", "GDP\\_NC"),
+    align    = c("l","l","c","c")
+  ) %>%
+  as.character()
+
+full_tex_gdp <- paste0(
+  "\\begin{table}[h!]\n",
+  "  \\centering\n",
+  "  \\caption{Correlations of topics (Original) with quarterly GDP growth (first release): full sample and without (NC) Financial Crisis (2008--2009)}\n",
+  "  \\label{tab:cor_gdp_topics_original_crisis}\n",
+  "  \\begin{threeparttable}\n",
+  "    \\scriptsize\n",
+  "    \\renewcommand{\\arraystretch}{1.3}\n",
+  tex_tab_gdp, "\n\n",
+  "    \\begin{tablenotes}[flushleft]\n",
+  "      \\small\n",
+  "      \\item Significance levels: * p<0.10; ** p<0.05; *** p<0.01. ",
+  "Significance levels are based on t-statistics from OLS regression with Newey-West SEs (maximum lag order = 4).\n",
+  "    \\end{tablenotes}\n",
+  "  \\end{threeparttable}\n",
+  "\\end{table}\n"
+)
+
+writeLines(full_tex_gdp,
+           file.path("correlations", "correlations_topics_original_gdp_crisis.tex"))
+
+############## Consumption table (full vs nc)
+topics_to_cross_Cons <- c("T169","T174","T94")
+
+keep_topics_Cons <- final_corr_sig %>%
+  select(topic, Consumption_corr) %>%
+  mutate(abs_Cons = abs(Consumption_corr)) %>%
+  arrange(desc(abs_Cons)) %>%
+  slice(1:13) %>%
+  pull(topic) %>%
+  setdiff(topics_to_cross_Cons)
+
+cons_full_vs_nc <- cons_corr_sig %>%
+  select(topic, Consumption_corr, Consumption_star) %>%
+  inner_join(cons_corr_sig_nc %>% select(topic, Consumption_corr_nc, Consumption_star_nc),
+             by = "topic") %>%
+  filter(topic %in% keep_topics_Cons) %>%
+  mutate(
+    Consumption    = paste0(sprintf("%0.3f", Consumption_corr),    Consumption_star),
+    Consumption_NC = paste0(sprintf("%0.3f", Consumption_corr_nc), Consumption_star_nc),
+    ID             = topic,
+    Label          = topic_labels_all[topic]
+  ) %>%
+  arrange(desc(abs(Consumption_corr))) %>%
+  select(ID, Label, Consumption, Consumption_NC)
+
+tex_tab_cons <- cons_full_vs_nc %>%
+  kable(
+    format   = "latex",
+    booktabs = TRUE,
+    escape   = FALSE,
+    col.names = c("ID", "Label", "Consumption", "Consumption\\_NC"),
+    align    = c("l","l","c","c")
+  ) %>%
+  as.character()
+
+full_tex_cons <- paste0(
+  "\\begin{table}[h!]\n",
+  "  \\centering\n",
+  "  \\caption{Correlations of topics (Original) with quarterly consumption growth (first release): full sample and without (NC) Financial Crisis (2008--2009)}\n",
+  "  \\label{tab:cor_cons_topics_original_crisis}\n",
+  "  \\begin{threeparttable}\n",
+  "    \\scriptsize\n",
+  "    \\renewcommand{\\arraystretch}{1.3}\n",
+  tex_tab_cons, "\n\n",
+  "    \\begin{tablenotes}[flushleft]\n",
+  "      \\small\n",
+  "      \\item Significance levels: * p<0.10; ** p<0.05; *** p<0.01. ",
+  "Significance levels are based on t-statistics from OLS regression with Newey-West SEs (maximum lag order = 4).\n",
+  "    \\end{tablenotes}\n",
+  "  \\end{threeparttable}\n",
+  "\\end{table}\n"
+)
+
+writeLines(full_tex_cons,
+           file.path("correlations", "correlations_topics_original_consumption_crisis.tex"))
+
+
+############## Investment table (full vs nc)
+topics_to_cross_Inv <- c("T62","T99","T104")
+
+keep_topics_Inv <- final_corr_sig %>%
+  select(topic, Investment_corr) %>%
+  mutate(abs_Inv = abs(Investment_corr)) %>%
+  arrange(desc(abs_Inv)) %>%
+  slice(1:13) %>%
+  pull(topic) %>%
+  setdiff(topics_to_cross_Inv)
+
+inv_full_vs_nc <- inv_corr_sig %>%
+  select(topic, Investment_corr, Investment_star) %>%
+  inner_join(inv_corr_sig_nc %>% select(topic, Investment_corr_nc, Investment_star_nc),
+             by = "topic") %>%
+  filter(topic %in% keep_topics_Inv) %>%
+  mutate(
+    Investment    = paste0(sprintf("%0.3f", Investment_corr),    Investment_star),
+    Investment_NC = paste0(sprintf("%0.3f", Investment_corr_nc), Investment_star_nc),
+    ID            = topic,
+    Label         = topic_labels_all[topic]
+  ) %>%
+  arrange(desc(abs(Investment_corr))) %>%
+  select(ID, Label, Investment, Investment_NC)
+
+tex_tab_inv <- inv_full_vs_nc %>%
+  kable(
+    format   = "latex",
+    booktabs = TRUE,
+    escape   = FALSE,
+    col.names = c("ID", "Label", "Investment", "Investment\\_NC"),
+    align    = c("l","l","c","c")
+  ) %>%
+  as.character()
+
+full_tex_inv <- paste0(
+  "\\begin{table}[h!]\n",
+  "  \\centering\n",
+  "  \\caption{Correlations of topics (Original) with quarterly investment growth (first release): full sample and without (NC) Financial Crisis (2008--2009)}\n",
+  "  \\label{tab:cor_inv_topics_original_crisis}\n",
+  "  \\begin{threeparttable}\n",
+  "    \\scriptsize\n",
+  "    \\renewcommand{\\arraystretch}{1.3}\n",
+  tex_tab_inv, "\n\n",
+  "    \\begin{tablenotes}[flushleft]\n",
+  "      \\small\n",
+  "      \\item Significance levels: * p<0.10; ** p<0.05; *** p<0.01. ",
+  "Significance levels are based on t-statistics from OLS regression with Newey-West SEs (maximum lag order = 4).\n",
+  "    \\end{tablenotes}\n",
+  "  \\end{threeparttable}\n",
+  "\\end{table}\n"
+)
+
+writeLines(full_tex_inv,
+           file.path("correlations", "correlations_topics_original_investment_crisis.tex"))
 
 
