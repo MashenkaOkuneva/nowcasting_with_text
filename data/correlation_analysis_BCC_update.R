@@ -180,6 +180,10 @@ df_topics_trafo_Q <- df_topics_trafo_Q %>%
                       ifelse(quarter == 3, "09", "12"))),
                       sep = "-"))
 
+# Drop 2008-2009 to get a no-crisis version
+df_topics_trafo_Q_nc <- df_topics_trafo_Q %>%
+  filter(!year %in% c(2008, 2009))
+
 # Given a file and a variable name ("growth"), merge an economic variable with the topics data 
 # and compute correlations for each topic column. Then, return the top 20 topics sorted 
 # by descending absolute correlation.
@@ -216,8 +220,8 @@ selected_topics <- c("T27", "T127", "T11", "T81", "T77",
                      "T74", "T52", "T131", "T138", "T100")
 
 # 1. Load and compute correlations for GDP
-#gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual_update.csv", econ_var = "growth", selected_topics = selected_topics)
-gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual_update.csv", econ_var = "growth", selected_topics = NULL)
+#gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual.csv", econ_var = "growth", selected_topics = selected_topics)
+gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual.csv", econ_var = "growth", selected_topics = NULL)
 # 2. For Consumption
 #cons_corr <- calc_topic_corr("../dfm/Consumption_growth_actual_update.csv", econ_var = "growth", selected_topics = selected_topics)
 cons_corr <- calc_topic_corr("../dfm/Consumption_growth_actual_update.csv", econ_var = "growth", selected_topics = NULL)
@@ -286,11 +290,11 @@ calc_topic_corr_econ_sig <- function(file, econ_var, topics_df, selected_topics 
 }
 
 # 1. Load and compute correlations for GDP
-#gdp_corr_sig <- calc_topic_corr_econ_sig("../dfm/GDP_growth_actual_update.csv", econ_var = "growth",
+#gdp_corr_sig <- calc_topic_corr_econ_sig("../dfm/GDP_growth_actual.csv", econ_var = "growth",
 #                                         topics_df = df_topics_trafo_Q, selected_topics = selected_topics, 
 #                                         nw_lag = 4)%>%
 #  rename(GDP_corr = corr, GDP_star = signif)
-gdp_corr_sig <- calc_topic_corr_econ_sig("../dfm/GDP_growth_actual_update.csv", econ_var = "growth",
+gdp_corr_sig <- calc_topic_corr_econ_sig("../dfm/GDP_growth_actual.csv", econ_var = "growth",
                                          topics_df = df_topics_trafo_Q, selected_topics = NULL, nw_lag = 4)%>%
   rename(GDP_corr = corr, GDP_star = signif)
 
@@ -311,6 +315,36 @@ cons_corr_sig <- calc_topic_corr_econ_sig("../dfm/Consumption_growth_actual_upda
 inv_corr_sig <- calc_topic_corr_econ_sig("../dfm/Investment_growth_actual_update.csv", econ_var = "growth",
                                          topics_df = df_topics_trafo_Q, selected_topics = NULL, nw_lag = 4)%>%
   rename(Investment_corr = corr, Investment_star = signif)
+
+
+# === NO-CRISIS CORRELATIONS (sign-adjusted topics, BCC) ===
+
+gdp_corr_sig_nc <- calc_topic_corr_econ_sig(
+  "../dfm/GDP_growth_actual.csv",
+  econ_var   = "growth",
+  topics_df  = df_topics_trafo_Q_nc,
+  selected_topics = NULL,
+  nw_lag     = 4
+) %>%
+  rename(GDP_corr_nc = corr, GDP_star_nc = signif)
+
+cons_corr_sig_nc <- calc_topic_corr_econ_sig(
+  "../dfm/Consumption_growth_actual_update.csv",
+  econ_var   = "growth",
+  topics_df  = df_topics_trafo_Q_nc,
+  selected_topics = NULL,
+  nw_lag     = 4
+) %>%
+  rename(Consumption_corr_nc = corr, Consumption_star_nc = signif)
+
+inv_corr_sig_nc <- calc_topic_corr_econ_sig(
+  "../dfm/Investment_growth_actual_update.csv",
+  econ_var   = "growth",
+  topics_df  = df_topics_trafo_Q_nc,
+  selected_topics = NULL,
+  nw_lag     = 4
+) %>%
+  rename(Investment_corr_nc = corr, Investment_star_nc = signif)
 
 # Combine the three results
 combined_econ <- gdp_corr_sig %>%
@@ -1387,6 +1421,249 @@ make_corr_table_sig(
   selected            = "_lag3",
   selected_topics = NULL
 )
+
+# FULL VS NC TABLES
+
+topic_labels_bcc <- c(
+  "T27"  = "\\makecell[tc]{ Economic Crises \\\\ and Recessions}",
+  "T127" = "\\makecell[tc]{ Major Banks and \\\\ Investment Banking}",
+  "T11"  = "Mergers and Acquisitions",
+  "T81"  = "\\makecell[tc]{ Corporate Restructuring and \\\\ Job Cuts in Germany}",
+  "T77"  = "Private Investment",
+  "T74"  = "\\makecell[tc]{ Concerns about Economic\\\\ Bubbles and Recessions}",
+  "T52"  = "\\makecell[tc]{ German Automobile Industry \\\\ and Major Manufacturers}",
+  "T131" = "\\makecell[tc]{German Investments in \\\\ Emerging Markets}",
+  "T138" = "\\makecell[tc]{ Financial and Economic \\\\ Performance}",
+  "T100" = "\\makecell[tc]{ Market Reactions to \\\\News}",
+  "T73"  = "\\makecell[tc]{ International Relations and \\\\ Diplomacy}",
+  "T151" = "\\makecell[tc]{ Balkan Conflicts and \\\\ International Responses}",
+  "T105" = "\\makecell[tc]{ Democracy and Leadership \\\\ in History }",
+  "T180" = "\\makecell[tc]{International Summits \\\\ and Conferences}",
+  "T191" = "\\makecell[tc]{Monetary Policy and \\\\ Central Banking}",
+  "T94"  = "Religion",
+  "T45"  = "\\makecell[tc]{Political Dynamics of the \\\\ FDP and Coalition Government}",
+  "T95"  = "\\makecell[tc]{Middle East Politics \\\\ and Israeli-Palestinian Conflict}",
+  "T35"  = "\\makecell[tc]{Russia and Post-Soviet \\\\ Dynamics}",
+  "T166" = "\\makecell[tc]{ Infrastructure and \\\\ Transportation Projects}",
+  "T102" = "\\makecell[tc]{  Taxation and Fiscal \\\\ Policy}",
+  "T93"  = "\\makecell[tc]{Government Budget and \\\\ Fiscal Policy}",
+  "T30"  = "\\makecell[tc]{ Urban Development \\\\ and Real Estate}",
+  "T126" = "\\makecell[tc]{ Unemployment and Labor \\\\ Market Policies}",
+  "T28"  = "Uncertainty and Expectations",
+  "T7"   = "\\makecell[tc]{ Culture, Arts \\\\ and Literature}",
+  "T147" = "\\makecell[tc]{ Business Financing and \\\\ Credit Solutions}",
+  "T15"  = "General Commentary",
+  "T168" = "\\makecell[tc]{ Derivatives and Financial \\\\ Instruments}",
+  "T157" = "\\makecell[tc]{French Politics and \\\\ Finance}",
+  "T50"  = "\\makecell[tc]{ Personal Opinions and \\\\ Beliefs in Interviews}",
+  "T43"  = "\\makecell[tc]{Official Statements\\\\ in Politics}",
+  "T42"  = "\\makecell[tc]{Federal State Governance\\\\ in Germany}",
+  "T121" = "\\makecell[tc]{ Political Parties and \\\\ Party Conventions}",
+  "T18"  = "\\makecell[tc]{ Substance Use, Public \\\\ Health and Legislation}",
+  "T51"  = "\\makecell[tc]{ Economic and Financial \\\\ Ministries}",
+  "T182" = "\\makecell[tc]{Program Development and\\\\ Implementation Initiatives}",
+  "T133" = "\\makecell[tc]{Challenges, Struggles,\\\\ and Crises}",
+  "T22"  = "\\makecell[tc]{ Media Interviews and \\\\ Public Statements}",
+  "T98"  = "\\makecell[tc]{ Interpersonal Communication,\\\\ Emotions and Public Speaking}",
+  "T171" = "\\makecell[tc]{ Criticism and Public \\\\ Response}",
+  "T48"  = "\\makecell[tc]{Business Success and \\\\ Economic Resilience}",
+  "T63"  = "\\makecell[tc]{ Commodity Markets and \\\\ Precious Metals}",
+  "T118" = "\\makecell[tc]{ Corporate Governance \\\\ and Executive Management}",
+  "T58"  = "\\makecell[tc]{ American Politics and \\\\ Presidents}",
+  "T125" = "\\makecell[tc]{ German Reunification and \\\\ Economic Transition}",
+  "T38"  = "\\makecell[tc]{German Federal Government's Fiscal\\\\ Policy and Coalition Dynamics}",
+  "T59"  = "\\makecell[tc]{  Law Enforcement and \\\\ Crime Prevention}",
+  "T54"  = "Media and Journalism",
+  "T45"  = "\\makecell[tc]{Political Dynamics of the \\\\ FDP and Coalition Government}"
+)
+
+topic_labels_bcc <- purrr::map_chr(
+  topic_labels_bcc,
+  ~ stringr::str_replace_all(.x, "\\\\makecell\\[tc\\]", "\\\\makecell[tl]")
+)
+
+# Construct variable-specific sets of topics for BCC
+
+## GDP: use pre-selected 10 BCC topics
+keep_topics_GDP_BCC <- selected_topics   
+
+## Consumption: top 13 BCC topics, excluding crossed ones
+topics_to_cross_Cons_BCC <- c("T105", "T125", "T38")
+
+keep_topics_Cons_BCC <- final_corr_sig %>%
+  select(topic, Consumption_corr) %>%
+  mutate(abs_Cons = abs(Consumption_corr)) %>%
+  arrange(desc(abs_Cons)) %>%
+  slice(1:13) %>%                         
+  pull(topic) %>%
+  setdiff(topics_to_cross_Cons_BCC)
+
+## Investment: top 11 BCC topics, excluding crossed ones
+topics_to_cross_Inv_BCC <- c("T15")
+
+keep_topics_Inv_BCC <- final_corr_sig %>%
+  select(topic, Investment_corr) %>%
+  mutate(abs_Inv = abs(Investment_corr)) %>%
+  arrange(desc(abs_Inv)) %>%
+  slice(1:11) %>%                         
+  pull(topic) %>%
+  setdiff(topics_to_cross_Inv_BCC)
+
+# Build full vs non-crisis tables with labels
+
+## -------- GDP --------
+gdp_full_vs_nc_bcc <- gdp_corr_sig %>%
+  select(topic, GDP_corr, GDP_star) %>%
+  inner_join(
+    gdp_corr_sig_nc %>% select(topic, GDP_corr_nc, GDP_star_nc),
+    by = "topic"
+  ) %>%
+  filter(topic %in% keep_topics_GDP_BCC) %>%
+  mutate(
+    Label = topic_labels_bcc[topic],
+    GDP_full = paste0(sprintf("%.3f", GDP_corr),     GDP_star),
+    GDP_NC   = paste0(sprintf("%.3f", GDP_corr_nc),  GDP_star_nc)
+  ) %>%
+  arrange(desc(abs(GDP_corr))) %>%
+  select(ID = topic, Label, GDP_full, GDP_NC)
+
+gdp_tab_bcc <- gdp_full_vs_nc_bcc %>%
+  kable(
+    format   = "latex",
+    booktabs = TRUE,
+    escape   = FALSE,
+    align    = c("l", "l", "c", "c"),
+    col.names= c("ID", "Topic", "GDP", "GDP (excl. 2008--2009)")
+  ) %>%
+  as.character()
+
+gdp_tab_bcc <- gsub("\\\\toprule",    "\\\\hline", gdp_tab_bcc)
+gdp_tab_bcc <- gsub("\\\\midrule",    "\\\\hline", gdp_tab_bcc)
+gdp_tab_bcc <- gsub("\\\\bottomrule", "\\\\hline", gdp_tab_bcc)
+
+gdp_tex_bcc <- paste0(
+  "\\begin{table}[h!]\n",
+  "  \\centering\n",
+  "  \\footnotesize\n",
+  "  \\renewcommand{\\arraystretch}{1.3}\n",
+  "  \\caption{Correlations of Sign-adjusted Topics (BCC) with GDP: Full Sample vs. Excluding 2008--2009}\n",
+  "  \\label{tab:bcc_gdp_full_nc}\n\n",
+  gdp_tab_bcc, "\n\n",
+  "  \\begin{minipage}{\\textwidth}\n",
+  "    \\vspace{0.2cm}\n",
+  "    \\small\n",
+  "    \\setlength{\\baselineskip}{0.8\\baselineskip}\n",
+  "    Note: Entries report correlations between sign-adjusted topics (BCC) and quarterly GDP growth (first release, q-o-q). ",
+  "‘GDP’ refers to the full sample; ‘GDP (excl. 2008--2009)’ excludes the financial crisis and immediate aftermath. ",
+  "Significance levels: * p<0.10; ** p<0.05; *** p<0.01 (Newey–West standard errors, maximum lag order = 4).\n",
+  "  \\end{minipage}\n",
+  "\\end{table}\n"
+)
+
+if (!dir.exists("correlations")) dir.create("correlations", recursive = TRUE)
+writeLines(gdp_tex_bcc, file.path("correlations", "correlation_table_BCC_GDP_full_vs_nc.tex"))
+
+## -------- Consumption --------
+cons_full_vs_nc_bcc <- cons_corr_sig %>%
+  select(topic, Consumption_corr, Consumption_star) %>%
+  inner_join(
+    cons_corr_sig_nc %>% select(topic, Consumption_corr_nc, Consumption_star_nc),
+    by = "topic"
+  ) %>%
+  filter(topic %in% keep_topics_Cons_BCC) %>%
+  mutate(
+    Label        = topic_labels_bcc[topic],
+    Cons_full    = paste0(sprintf("%.3f", Consumption_corr),    Consumption_star),
+    Cons_NC      = paste0(sprintf("%.3f", Consumption_corr_nc), Consumption_star_nc)
+  ) %>%
+  arrange(desc(abs(Consumption_corr))) %>%
+  select(ID = topic, Label, Cons_full, Cons_NC)
+
+cons_tab_bcc <- cons_full_vs_nc_bcc %>%
+  kable(
+    format   = "latex",
+    booktabs = TRUE,
+    escape   = FALSE,
+    align    = c("l", "l", "c", "c"),
+    col.names= c("ID", "Topic", "Consumption", "Consumption (excl. 2008--2009)")
+  ) %>%
+  as.character()
+
+cons_tab_bcc <- gsub("\\\\toprule",    "\\\\hline", cons_tab_bcc)
+cons_tab_bcc <- gsub("\\\\midrule",    "\\\\hline", cons_tab_bcc)
+cons_tab_bcc <- gsub("\\\\bottomrule", "\\\\hline", cons_tab_bcc)
+
+cons_tex_bcc <- paste0(
+  "\\begin{table}[h!]\n",
+  "  \\centering\n",
+  "  \\footnotesize\n",
+  "  \\renewcommand{\\arraystretch}{1.3}\n",
+  "  \\caption{Correlations of Sign-adjusted Topics (BCC) with Consumption: Full Sample vs. Excluding 2008--2009}\n",
+  "  \\label{tab:bcc_cons_full_nc}\n\n",
+  cons_tab_bcc, "\n\n",
+  "  \\begin{minipage}{\\textwidth}\n",
+  "    \\vspace{0.2cm}\n",
+  "    \\small\n",
+  "    \\setlength{\\baselineskip}{0.8\\baselineskip}\n",
+  "    Note: Entries report correlations between sign-adjusted topics (BCC) and quarterly consumption growth (first release, q-o-q). ",
+  "‘Consumption’ refers to the full sample; ‘Consumption (excl. 2008--2009)’ excludes the financial crisis and immediate aftermath. ",
+  "Significance levels: * p<0.10; ** p<0.05; *** p<0.01 (Newey–West standard errors, maximum lag order = 4).\n",
+  "  \\end{minipage}\n",
+  "\\end{table}\n"
+)
+
+writeLines(cons_tex_bcc, file.path("correlations", "correlation_table_BCC_Consumption_full_vs_nc.tex"))
+
+## -------- Investment --------
+inv_full_vs_nc_bcc <- inv_corr_sig %>%
+  select(topic, Investment_corr, Investment_star) %>%
+  inner_join(
+    inv_corr_sig_nc %>% select(topic, Investment_corr_nc, Investment_star_nc),
+    by = "topic"
+  ) %>%
+  filter(topic %in% keep_topics_Inv_BCC) %>%
+  mutate(
+    Label       = topic_labels_bcc[topic],
+    Inv_full    = paste0(sprintf("%.3f", Investment_corr),    Investment_star),
+    Inv_NC      = paste0(sprintf("%.3f", Investment_corr_nc), Investment_star_nc)
+  ) %>%
+  arrange(desc(abs(Investment_corr))) %>%
+  select(ID = topic, Label, Inv_full, Inv_NC)
+
+inv_tab_bcc <- inv_full_vs_nc_bcc %>%
+  kable(
+    format   = "latex",
+    booktabs = TRUE,
+    escape   = FALSE,
+    align    = c("l", "l", "c", "c"),
+    col.names= c("ID", "Topic", "Investment", "Investment (excl. 2008--2009)")
+  ) %>%
+  as.character()
+
+inv_tab_bcc <- gsub("\\\\toprule",    "\\\\hline", inv_tab_bcc)
+inv_tab_bcc <- gsub("\\\\midrule",    "\\\\hline", inv_tab_bcc)
+inv_tab_bcc <- gsub("\\\\bottomrule", "\\\\hline", inv_tab_bcc)
+
+inv_tex_bcc <- paste0(
+  "\\begin{table}[h!]\n",
+  "  \\centering\n",
+  "  \\footnotesize\n",
+  "  \\renewcommand{\\arraystretch}{1.3}\n",
+  "  \\caption{Correlations of Sign-adjusted Topics (BCC) with Investment: Full Sample vs. Excluding 2008--2009}\n",
+  "  \\label{tab:bcc_inv_full_nc}\n\n",
+  inv_tab_bcc, "\n\n",
+  "  \\begin{minipage}{\\textwidth}\n",
+  "    \\vspace{0.2cm}\n",
+  "    \\small\n",
+  "    \\setlength{\\baselineskip}{0.8\\baselineskip}\n",
+  "    Note: Entries report correlations between sign-adjusted topics (BCC) and quarterly investment growth (first release, q-o-q). ",
+  "‘Investment’ refers to the full sample; ‘Investment (excl. 2008--2009)’ excludes the financial crisis and immediate aftermath. ",
+  "Significance levels: * p<0.10; ** p<0.05; *** p<0.01 (Newey–West standard errors, maximum lag order = 4).\n",
+  "  \\end{minipage}\n",
+  "\\end{table}\n"
+)
+
+writeLines(inv_tex_bcc, file.path("correlations", "correlation_table_BCC_Investment_full_vs_nc.tex"))
 
 
 
