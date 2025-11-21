@@ -220,14 +220,14 @@ selected_topics <- c("T27", "T127", "T11", "T81", "T77",
                      "T74", "T52", "T131", "T138", "T100")
 
 # 1. Load and compute correlations for GDP
-#gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual.csv", econ_var = "growth", selected_topics = selected_topics)
-gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual.csv", econ_var = "growth", selected_topics = NULL)
+gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual.csv", econ_var = "growth", selected_topics = selected_topics)
+#gdp_corr <- calc_topic_corr("../dfm/GDP_growth_actual.csv", econ_var = "growth", selected_topics = NULL)
 # 2. For Consumption
-#cons_corr <- calc_topic_corr("../dfm/Consumption_growth_actual_update.csv", econ_var = "growth", selected_topics = selected_topics)
-cons_corr <- calc_topic_corr("../dfm/Consumption_growth_actual_update.csv", econ_var = "growth", selected_topics = NULL)
+cons_corr <- calc_topic_corr("../dfm/Consumption_growth_actual_update.csv", econ_var = "growth", selected_topics = selected_topics)
+#cons_corr <- calc_topic_corr("../dfm/Consumption_growth_actual_update.csv", econ_var = "growth", selected_topics = NULL)
 # 3. For Investment
-#inv_corr <- calc_topic_corr("../dfm/Investment_growth_actual_update.csv", econ_var = "growth", selected_topics = selected_topics)
-inv_corr <- calc_topic_corr("../dfm/Investment_growth_actual_update.csv", econ_var = "growth", selected_topics = NULL)
+inv_corr <- calc_topic_corr("../dfm/Investment_growth_actual_update.csv", econ_var = "growth", selected_topics = selected_topics)
+#inv_corr <- calc_topic_corr("../dfm/Investment_growth_actual_update.csv", econ_var = "growth", selected_topics = NULL)
 
 # Combine the three results
 # Do a full join so that every topic that appears in at least one top-20 is retained
@@ -290,31 +290,31 @@ calc_topic_corr_econ_sig <- function(file, econ_var, topics_df, selected_topics 
 }
 
 # 1. Load and compute correlations for GDP
-#gdp_corr_sig <- calc_topic_corr_econ_sig("../dfm/GDP_growth_actual.csv", econ_var = "growth",
-#                                         topics_df = df_topics_trafo_Q, selected_topics = selected_topics, 
-#                                         nw_lag = 4)%>%
-#  rename(GDP_corr = corr, GDP_star = signif)
 gdp_corr_sig <- calc_topic_corr_econ_sig("../dfm/GDP_growth_actual.csv", econ_var = "growth",
-                                         topics_df = df_topics_trafo_Q, selected_topics = NULL, nw_lag = 4)%>%
+                                         topics_df = df_topics_trafo_Q, selected_topics = selected_topics, 
+                                         nw_lag = 4)%>%
   rename(GDP_corr = corr, GDP_star = signif)
+#gdp_corr_sig <- calc_topic_corr_econ_sig("../dfm/GDP_growth_actual.csv", econ_var = "growth",
+#                                         topics_df = df_topics_trafo_Q, selected_topics = NULL, nw_lag = 4)%>%
+#  rename(GDP_corr = corr, GDP_star = signif)
 
 # 2. For Consumption
-#cons_corr_sig <- calc_topic_corr_econ_sig("../dfm/Consumption_growth_actual_update.csv", econ_var = "growth",
-#                                          topics_df = df_topics_trafo_Q, selected_topics = selected_topics, 
-#                                          nw_lag = 4)%>%
-#  rename(Consumption_corr = corr, Consumption_star = signif)
 cons_corr_sig <- calc_topic_corr_econ_sig("../dfm/Consumption_growth_actual_update.csv", econ_var = "growth",
-                                          topics_df = df_topics_trafo_Q, selected_topics = NULL, nw_lag = 4)%>%
+                                          topics_df = df_topics_trafo_Q, selected_topics = selected_topics, 
+                                          nw_lag = 4)%>%
   rename(Consumption_corr = corr, Consumption_star = signif)
+#cons_corr_sig <- calc_topic_corr_econ_sig("../dfm/Consumption_growth_actual_update.csv", econ_var = "growth",
+#                                          topics_df = df_topics_trafo_Q, selected_topics = NULL, nw_lag = 4)%>%
+#  rename(Consumption_corr = corr, Consumption_star = signif)
 
 # 3. For Investment
-#inv_corr_sig <- calc_topic_corr_econ_sig("../dfm/Investment_growth_actual_update.csv", econ_var = "growth",
-#                                         topics_df = df_topics_trafo_Q, selected_topics = selected_topics, 
-#                                         nw_lag = 4)%>%
-#  rename(Investment_corr = corr, Investment_star = signif)
 inv_corr_sig <- calc_topic_corr_econ_sig("../dfm/Investment_growth_actual_update.csv", econ_var = "growth",
-                                         topics_df = df_topics_trafo_Q, selected_topics = NULL, nw_lag = 4)%>%
+                                         topics_df = df_topics_trafo_Q, selected_topics = selected_topics, 
+                                         nw_lag = 4)%>%
   rename(Investment_corr = corr, Investment_star = signif)
+#inv_corr_sig <- calc_topic_corr_econ_sig("../dfm/Investment_growth_actual_update.csv", econ_var = "growth",
+#                                         topics_df = df_topics_trafo_Q, selected_topics = NULL, nw_lag = 4)%>%
+#  rename(Investment_corr = corr, Investment_star = signif)
 
 
 # === NO-CRISIS CORRELATIONS (sign-adjusted topics, BCC) ===
